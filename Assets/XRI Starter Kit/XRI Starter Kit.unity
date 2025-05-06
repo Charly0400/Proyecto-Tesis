@@ -66270,6 +66270,10 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 2147483647
       objectReference: {fileID: 0}
+    - target: {fileID: 2907061627524963080, guid: 7ea62794a32212341a7712d47f2d1abb, type: 3}
+      propertyPath: m_BlockingMask.m_Bits
+      value: 4294967295
+      objectReference: {fileID: 0}
     - target: {fileID: 2907061627524963082, guid: 7ea62794a32212341a7712d47f2d1abb, type: 3}
       propertyPath: m_Name
       value: Console Log
@@ -66309,6 +66313,10 @@ PrefabInstance:
     - target: {fileID: 2907061627524963083, guid: 7ea62794a32212341a7712d47f2d1abb, type: 3}
       propertyPath: warningColor.r
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2907061627524963084, guid: 7ea62794a32212341a7712d47f2d1abb, type: 3}
+      propertyPath: m_BlockingMask.m_Bits
+      value: 4294967295
       objectReference: {fileID: 0}
     - target: {fileID: 2907061627524963087, guid: 7ea62794a32212341a7712d47f2d1abb, type: 3}
       propertyPath: m_Pivot.x

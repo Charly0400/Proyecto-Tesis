@@ -1,8 +1,13 @@
 using UnityEngine.UI;
 using UnityEngine.Assertions;
 using UnityEngine.InputSystem;
+#if XR_HANDS_1_1_OR_NEWER
+using UnityEngine.XR.Hands;
+#endif
+using UnityEngine.XR.Interaction.Toolkit.Inputs;
 using UnityEngine.XR.Interaction.Toolkit.Inputs.Readers;
 using UnityEngine.XR.Interaction.Toolkit.Inputs.Simulation;
+using UnityEngine.XR.Interaction.Toolkit.Utilities;
 
 namespace UnityEngine.XR.Interaction.Toolkit.Samples.DeviceSimulator
 {
@@ -148,6 +153,15 @@ namespace UnityEngine.XR.Interaction.Toolkit.Samples.DeviceSimulator
         [SerializeField]
         GameObject m_HandPackageWarningPanel;
 
+        [SerializeField]
+        GameObject m_InputModalityManagerWarningPanel;
+
+        [SerializeField]
+        GameObject m_InputMenuHandVisualizerWarningPanel;
+
+        [SerializeField]
+        GameObject m_HandMenuHandVisualizerWarningPanel;
+
         XRInteractionSimulator m_Simulator;
         SimulatedDeviceLifecycleManager m_DeviceLifecycleManager;
         SimulatedHandExpressionManager m_HandExpressionManager;
@@ -203,13 +217,52 @@ namespace UnityEngine.XR.Interaction.Toolkit.Samples.DeviceSimulator
 
             InitializeQuickActionPanels();
 
-#if !XR_HANDS_1_1_OR_NEWER
+#if XR_HANDS_1_1_OR_NEWER
+            CheckInputModalityManager();
+#else
             m_HandPackageWarningPanel.SetActive(true);
             m_LeftHandIcon.color = k_DisabledColor;
             m_RightHandIcon.color = k_DisabledColor;
 #endif
 
+#if XR_HANDS_1_2_OR_NEWER
+            if (!m_HandPackageWarningPanel.activeSelf && !m_InputModalityManagerWarningPanel.activeSelf)
+                CheckHandVisualizer();
+#endif
         }
+
+        void CheckInputModalityManager()
+        {
+            if (ComponentLocatorUtility<XRInputModalityManager>.TryFindComponent(out var inputModalityManager) &&
+                inputModalityManager.leftHand == null && inputModalityManager.rightHand == null)
+            {
+                m_InputModalityManagerWarningPanel.SetActive(true);
+                m_LeftHandIcon.color = k_DisabledColor;
+                m_RightHandIcon.color = k_DisabledColor;
+            }
+        }
+
+#if XR_HANDS_1_2_OR_NEWER
+        void CheckHandVisualizer()
+        {
+            if (ComponentLocatorUtility<XRInputModalityManager>.TryFindComponent(out var inputModalityManager))
+            {
+                if (inputModalityManager.leftHand == null && inputModalityManager.rightHand == null)
+                    return;
+
+                if ((inputModalityManager.leftHand != null &&
+                        inputModalityManager.leftHand.GetComponentInChildren<XRHandMeshController>() != null) ||
+                    (inputModalityManager.rightHand != null &&
+                        inputModalityManager.rightHand.GetComponentInChildren<XRHandMeshController>() != null))
+                {
+                    return;
+                }
+
+                m_InputMenuHandVisualizerWarningPanel.SetActive(true);
+                m_HandMenuHandVisualizerWarningPanel.SetActive(true);
+            }
+        }
+#endif
 
         void InitializeQuickActionPanels()
         {

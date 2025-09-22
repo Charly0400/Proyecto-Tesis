@@ -1,102 +1,152 @@
 ﻿using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Cahrly.FlightController {
 
     [RequireComponent(typeof(Rigidbody))]
     public class FlightController : MonoBehaviour {
 
-        [Header("Settings")]
-        public float m_MaxSpeed = 200f;  // Aumentar (un avión comercial vuela a ~250 m/s)
-        public float m_Acceleration = 30f; // Aumentar considerablemente
-        public float m_TakeoffSpeed = 60f; // Nueva variable para velocidad mínima de despegue
-        public float m_Drag = 5f;
-        public float m_RotationSpeed = 50f;
-        //public AudioSource m_EngineAudio;
+        [Header("Flight Settings")]
+        public float m_MaxSpeed = 200f;          // Velocidad máxima (100%)
+        public float m_TakeoffSpeed = 60f;       // Velocidad mínima para despegar
+        public float m_RotationSpeed = 50f;      // Velocidad de giro
+        public float m_LiftForce = 15f;          // Fuerza de sustentación
+
+        [Header("Aerodynamics")]
+        public float m_MinLiftSpeed = 40f;       // Velocidad mínima para generar sustentación
+        public float m_MaxLiftSpeed = 120f;      // Velocidad para sustentación máxima
+
+        [Header("XR Integration")]
+        public Transform xrOrigin;
+        public Transform pilotSeat;
+        public float xrSmoothness = 5f;
 
         private Rigidbody m_Rigidbody;
-        private float m_ThrottleInput;
-        private Vector2 m_DirectionInput; // X: yaw/roll, Y: pitch
-        private float m_CurrentSpeed;
+        private float m_ThrottleInput;           // 0 a 1 (0% a 100%)
+        private Vector2 m_DirectionInput;        // X: yaw/roll, Y: pitch
         private bool m_EngineOn;
+
+        public AircraftVehicle aircraft;
+        private bool isInAircraft = false;
 
         private void Awake() {
             m_Rigidbody = GetComponent<Rigidbody>();
+            SetupRigidbody();
+        }
+        private void SetupRigidbody() {
+            m_Rigidbody.linearDamping = 0.2f;            // Resistencia al movimiento
+            m_Rigidbody.angularDamping = 1.5f;     // Resistencia a la rotación
+            m_Rigidbody.useGravity = true;      // Importante para avión
         }
 
-        private void Start() {
-            //StopEngine();
-        }
 
         private void FixedUpdate() {
-            //if (!m_EngineOn) return;
+            if (!m_EngineOn) return;
 
-            HandleThrottle();
             MovePlane();
+            ApplyLift();
             RotatePlane();
-        }
-
-        private void HandleThrottle() {
-            // Aumentar velocidad
-            m_CurrentSpeed += m_ThrottleInput * m_Acceleration * Time.fixedDeltaTime;
-
-            // Aplicar desaceleración natural
-            if (m_ThrottleInput <= 0)
-                m_CurrentSpeed -= m_Drag * Time.fixedDeltaTime;
-
-            // Limitar
-            m_CurrentSpeed = Mathf.Clamp(m_CurrentSpeed, 0, m_MaxSpeed);
+            UpdateXRPosition();
         }
 
         private void MovePlane() {
-            Vector3 forwardMovement = transform.forward * m_CurrentSpeed * Time.fixedDeltaTime;
+            // ✅ CALCULO CORRECTO: throttle (0-1) * velocidad máxima
+            float currentSpeed = m_ThrottleInput * m_MaxSpeed;
 
-            // Fuerza de sustentación básica (simulando alas)
-            float liftPower = Mathf.Clamp(m_CurrentSpeed * 0.2f, 0f, 15f);
-            Vector3 liftForce = transform.up * liftPower * Time.fixedDeltaTime;
+            // ✅ Movimiento SOLO hacia adelante en la dirección del avión
+            Vector3 movement = transform.forward * currentSpeed * Time.fixedDeltaTime;
+            m_Rigidbody.MovePosition(m_Rigidbody.position + movement);
 
-            m_Rigidbody.MovePosition(m_Rigidbody.position + forwardMovement + liftForce);
+            Debug.Log($"Throttle: {m_ThrottleInput * 100}% - Speed: {currentSpeed} m/s");
+        }
+
+        private void ApplyLift() {
+            float currentSpeed = m_ThrottleInput * m_MaxSpeed;
+
+            // ✅ Sustentación SOLO si hay suficiente velocidad
+            if (currentSpeed > m_MinLiftSpeed) {
+                float liftFactor = Mathf.Clamp01((currentSpeed - m_MinLiftSpeed) /
+                                               (m_MaxLiftSpeed - m_MinLiftSpeed));
+
+                Vector3 liftForce = transform.up * m_LiftForce * liftFactor * Time.fixedDeltaTime;
+                m_Rigidbody.AddForce(liftForce, ForceMode.VelocityChange);
+            }
         }
 
         private void RotatePlane() {
-            if (m_CurrentSpeed < m_TakeoffSpeed * 0.3f) return; // No girar a baja velocidad
+            float currentSpeed = m_ThrottleInput * m_MaxSpeed;
 
-            float speedFactor = Mathf.Clamp(m_CurrentSpeed / m_MaxSpeed, 0.3f, 1f);
+            // ✅ No girar a muy baja velocidad
+            if (currentSpeed < m_TakeoffSpeed * 0.3f) return;
+
+            float speedFactor = Mathf.Clamp(currentSpeed / m_MaxSpeed, 0.3f, 1f);
 
             float yaw = m_DirectionInput.x * m_RotationSpeed * speedFactor * Time.fixedDeltaTime;
             float pitch = -m_DirectionInput.y * m_RotationSpeed * speedFactor * Time.fixedDeltaTime;
             float roll = -m_DirectionInput.x * m_RotationSpeed * 0.8f * speedFactor * Time.fixedDeltaTime;
 
-            // Aplicar fuerza de sustentación durante giros
-            Vector3 liftForce = transform.up * (m_CurrentSpeed * 0.1f * Mathf.Abs(m_DirectionInput.y));
-            m_Rigidbody.AddForce(liftForce, ForceMode.Force);
-
             m_Rigidbody.MoveRotation(m_Rigidbody.rotation * Quaternion.Euler(pitch, yaw, roll));
         }
 
-        public void EngineState(int state) {
-            if (state == 0)
-                StopEngine();
-            else
-                StartEngine();
+        // === CONTROL DE PALANCAS ===
+        public void SetThrottle(float input) {
+            // ✅ Palanca: 0 = neutro (0%), 0.5 = 50%, 1 = 100%
+            m_ThrottleInput = Mathf.Clamp01(input);
         }
 
-        public void StartEngine() { 
+        public void SetDirectionInput(Vector2 input) {
+            m_DirectionInput = Vector2.ClampMagnitude(input, 1f);
+        }
+
+        public void EngineState(int state) {
+            if (state == 0) StopEngine();
+            else StartEngine();
+        }
+
+        public void StartEngine() {
             if (m_EngineOn) return;
             m_EngineOn = true;
-            //if (m_EngineAudio) m_EngineAudio.Play();
+            Debug.Log("Motor encendido");
         }
 
         public void StopEngine() {
             m_EngineOn = false;
-            m_CurrentSpeed = 0f;
-            //if (m_EngineAudio) m_EngineAudio.Stop();
+            m_ThrottleInput = 0f; // Resetear throttle al apagar motor
+            Debug.Log("Motor apagado");
         }
 
-        // === 👇 Estas se asignan desde los XRJoystick en Unity ===
-        public void SetThrottle(float input) => m_ThrottleInput = Mathf.Clamp(input, -1f, 1f);
-        public void SetDirectionInput(Vector2 input) {
-            Debug.Log(input);
-            m_DirectionInput = Vector2.ClampMagnitude(input, 1f);
+        private void UpdateXRPosition() {
+            if (xrOrigin == null || pilotSeat == null) return;
+
+            // Suavizado de movimiento para comfort en VR
+            xrOrigin.position = Vector3.Lerp(
+                xrOrigin.position,
+                pilotSeat.position,
+                Time.deltaTime * xrSmoothness
+            );
+
+            // Rotación suavizada (solo el cuerpo, no la cabeza)
+            xrOrigin.rotation = Quaternion.Slerp(
+                xrOrigin.rotation,
+                pilotSeat.rotation,
+                Time.deltaTime * (xrSmoothness / 2f)
+            );
         }
+
+        public void RestartLevel() {
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        }
+
+        public void ToggleAircraftEntrance() {
+            if (isInAircraft) {
+                aircraft.UnseatPlayer();
+                isInAircraft = false;
+            }
+            else {
+                aircraft.SeatPlayer();
+                isInAircraft = true;
+            }
+        }
+
     }
 }

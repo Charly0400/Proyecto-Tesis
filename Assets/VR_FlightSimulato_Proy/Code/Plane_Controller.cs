@@ -1,10 +1,11 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
 
-public class Plane : MonoBehaviour {
+public class Plane_Controller : MonoBehaviour {
     [Header("Basic Flight Parameters")]
     [SerializeField] float maxHealth = 100f;
     [SerializeField] float health = 100f;
@@ -46,6 +47,10 @@ public class Plane : MonoBehaviour {
     [SerializeField] private float throttleSensitivity = 1.5f;
     [SerializeField] private Vector2 stickDeadzone = new Vector2(0.05f, 0.05f);
 
+    [Header("Input System Testing")]
+    [SerializeField] private bool useKeyboardInput = false;
+    [SerializeField] private float keyboardSensitivity = 1.0f;
+
     [Header("Misc")]
     [SerializeField] float initialSpeed = 50f;
     [SerializeField] List<GameObject> graphics;
@@ -63,6 +68,13 @@ public class Plane : MonoBehaviour {
     private bool isThrottleGrabbed = false;
     private Vector3 smoothedControlInput = Vector3.zero;
 
+    // Input System
+    private PlayerInput playerInput;
+    private InputAction pitchAction;
+    private InputAction rollAction;
+    private InputAction yawAction;
+    private InputAction throttleAction;
+
     public Rigidbody Rigidbody { get; private set; }
     public float Throttle { get; private set; }
     public Vector3 Velocity { get; private set; }
@@ -76,7 +88,13 @@ public class Plane : MonoBehaviour {
 
     void Start() {
         Rigidbody = GetComponent<Rigidbody>();
-        SetupVRControls();
+
+        if (useKeyboardInput) {
+            SetupInputSystem();
+        }
+        else {
+            SetupVRControls();
+        }
 
         Rigidbody.linearVelocity = Rigidbody.rotation * new Vector3(0, 0, initialSpeed);
     }
@@ -98,6 +116,40 @@ public class Plane : MonoBehaviour {
         }
     }
 
+    void SetupInputSystem() {
+        playerInput = GetComponent<PlayerInput>();
+        if (playerInput == null) {
+            playerInput = gameObject.AddComponent<PlayerInput>();
+        }
+
+        // Configurar acciones de input
+        pitchAction = new InputAction("Pitch", InputActionType.Value, "<Keyboard>/w,<Keyboard>/s");
+        rollAction = new InputAction("Roll", InputActionType.Value, "<Keyboard>/a,<Keyboard>/d");
+        yawAction = new InputAction("Yaw", InputActionType.Value, "<Keyboard>/q,<Keyboard>/e");
+        throttleAction = new InputAction("Throttle", InputActionType.Value, "<Keyboard>/upArrow,<Keyboard>/downArrow");
+
+        pitchAction.AddCompositeBinding("Axis")
+            .With("Positive", "<Keyboard>/w")
+            .With("Negative", "<Keyboard>/s");
+
+        rollAction.AddCompositeBinding("Axis")
+            .With("Positive", "<Keyboard>/d")
+            .With("Negative", "<Keyboard>/a");
+
+        yawAction.AddCompositeBinding("Axis")
+            .With("Positive", "<Keyboard>/e")
+            .With("Negative", "<Keyboard>/q");
+
+        throttleAction.AddCompositeBinding("Axis")
+            .With("Positive", "<Keyboard>/upArrow")
+            .With("Negative", "<Keyboard>/downArrow");
+
+        pitchAction.Enable();
+        rollAction.Enable();
+        yawAction.Enable();
+        throttleAction.Enable();
+    }
+
     void OnFlightStickGrabbed(SelectEnterEventArgs args) {
         isFlightStickGrabbed = true;
     }
@@ -114,9 +166,30 @@ public class Plane : MonoBehaviour {
         isThrottleGrabbed = false;
     }
 
+    void UpdateInputs() {
+        if (useKeyboardInput) {
+            UpdateKeyboardInput();
+        }
+        else {
+            UpdateVRHandControls();
+        }
+    }
+
     void UpdateVRHandControls() {
         UpdateFlightStickControl();
         UpdateThrottleControl();
+    }
+
+    void UpdateKeyboardInput() {
+        // Leer inputs del teclado
+        float pitch = pitchAction.ReadValue<float>();
+        float roll = rollAction.ReadValue<float>();
+        float yaw = yawAction.ReadValue<float>();
+        float throttle = throttleAction.ReadValue<float>();
+
+        // Aplicar sensibilidad y asignar inputs
+        controlInput = new Vector3(pitch, yaw, roll) * keyboardSensitivity;
+        throttleInput = throttle;
     }
 
     void UpdateFlightStickControl() {
@@ -307,7 +380,7 @@ public class Plane : MonoBehaviour {
     void FixedUpdate() {
         float dt = Time.fixedDeltaTime;
 
-        UpdateVRHandControls();
+        UpdateInputs(); // Actualiza tanto VR como teclado
         CalculateState(dt);
         CalculateGForce(dt);
         UpdateThrottle(dt);
@@ -373,5 +446,29 @@ public class Plane : MonoBehaviour {
         if (throttleTransform != null && !isThrottleGrabbed) {
             throttleNeutralPos = throttleTransform.localPosition;
         }
+    }
+
+    // Método para cambiar entre modos en tiempo de ejecución
+    public void ToggleInputMode() {
+        useKeyboardInput = !useKeyboardInput;
+
+        if (useKeyboardInput) {
+            SetupInputSystem();
+        }
+        else {
+            // Deshabilitar acciones de input system si existen
+            if (pitchAction != null) pitchAction.Disable();
+            if (rollAction != null) rollAction.Disable();
+            if (yawAction != null) yawAction.Disable();
+            if (throttleAction != null) throttleAction.Disable();
+        }
+    }
+
+    void OnDestroy() {
+        // Limpiar acciones de input
+        if (pitchAction != null) pitchAction.Dispose();
+        if (rollAction != null) rollAction.Dispose();
+        if (yawAction != null) yawAction.Dispose();
+        if (throttleAction != null) throttleAction.Dispose();
     }
 }

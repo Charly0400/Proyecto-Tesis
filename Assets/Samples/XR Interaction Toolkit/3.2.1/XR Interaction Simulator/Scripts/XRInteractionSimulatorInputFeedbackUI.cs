@@ -4,7 +4,7 @@ using UnityEngine.UI;
 using UnityEngine.XR.Interaction.Toolkit.Inputs.Readers;
 using UnityEngine.XR.Interaction.Toolkit.Inputs.Simulation;
 
-namespace UnityEngine.XR.Interaction.Toolkit.Samples.DeviceSimulator
+namespace UnityEngine.XR.Interaction.Toolkit.Samples.InteractionSimulator
 {
     class XRInteractionSimulatorInputFeedbackUI : MonoBehaviour
     {

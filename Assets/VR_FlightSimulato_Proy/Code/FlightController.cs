@@ -1,10 +1,14 @@
-﻿using UnityEngine;
+﻿using MikeNspired.XRIStarterKit;
+using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace Cahrly.FlightController {
 
     [RequireComponent(typeof(Rigidbody))]
     public class FlightController : MonoBehaviour {
+        [Header("VR Controls")]
+        [SerializeField] private XRSlider throttleLever;
+        [SerializeField] private Transform flightStick;
 
         [Header("Flight Settings")]
         public float m_MaxSpeed = 200f;          // Velocidad máxima (100%)
@@ -32,6 +36,19 @@ namespace Cahrly.FlightController {
         private void Awake() {
             m_Rigidbody = GetComponent<Rigidbody>();
             SetupRigidbody();
+        }
+        void Start() {
+            // Conectar la palanca al avión
+            if (throttleLever != null) {
+                var sliderComponent = throttleLever.GetComponent<XRSlider>();
+                if (sliderComponent != null) {
+                    // Usar el método SetMovingParent si existe
+                    var method = sliderComponent.GetType().GetMethod("SetMovingParent");
+                    if (method != null) {
+                        method.Invoke(sliderComponent, new object[] { transform });
+                    }
+                }
+            }
         }
         private void SetupRigidbody() {
             m_Rigidbody.linearDamping = 0.2f;            // Resistencia al movimiento

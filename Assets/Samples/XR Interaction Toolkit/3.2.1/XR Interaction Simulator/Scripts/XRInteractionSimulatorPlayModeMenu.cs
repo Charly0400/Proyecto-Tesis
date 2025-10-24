@@ -9,7 +9,7 @@ using UnityEngine.XR.Interaction.Toolkit.Inputs.Readers;
 using UnityEngine.XR.Interaction.Toolkit.Inputs.Simulation;
 using UnityEngine.XR.Interaction.Toolkit.Utilities;
 
-namespace UnityEngine.XR.Interaction.Toolkit.Samples.DeviceSimulator
+namespace UnityEngine.XR.Interaction.Toolkit.Samples.InteractionSimulator
 {
     class XRInteractionSimulatorPlayModeMenu : MonoBehaviour
     {

@@ -967,7 +967,7 @@ MonoBehaviour:
         m_Interactions: 
         m_SingletonActionBindings: []
         m_Flags: 0
-      m_InputActionReferencePerformed: {fileID: -5976510165261225158, guid: b72ab2a46d9094be38774d023beb4d34, type: 3}
+      m_InputActionReferencePerformed: {fileID: -5976510165261225158, guid: 1f7ec93f6b8c84f5981db5008b5859cd, type: 3}
       m_InputActionReferenceValue: {fileID: -5976510165261225158, guid: b72ab2a46d9094be38774d023beb4d34, type: 3}
       m_ObjectReferenceObject: {fileID: 0}
       m_ManualPerformed: 0
@@ -977,7 +977,7 @@ MonoBehaviour:
       m_ManualQueueWasCompletedThisFrame: 0
       m_ManualQueueValue: 0
       m_ManualQueueTargetFrame: 0
-    m_Capture: {fileID: 11400000, guid: 95c319715e9d2644da8ae09af8ccfee6, type: 2}
+    m_Capture: {fileID: 11400000, guid: ac5d39631059b48e7adac17367aa3908, type: 2}
     m_IsQuickAction: 1
   - m_Name: Pinch
     m_ToggleInput:
@@ -1000,8 +1000,8 @@ MonoBehaviour:
         m_Interactions: 
         m_SingletonActionBindings: []
         m_Flags: 0
-      m_InputActionReferencePerformed: {fileID: -8306000708137014372, guid: b72ab2a46d9094be38774d023beb4d34, type: 3}
-      m_InputActionReferenceValue: {fileID: -8306000708137014372, guid: b72ab2a46d9094be38774d023beb4d34, type: 3}
+      m_InputActionReferencePerformed: {fileID: -8306000708137014372, guid: 1f7ec93f6b8c84f5981db5008b5859cd, type: 3}
+      m_InputActionReferenceValue: {fileID: -8306000708137014372, guid: 1f7ec93f6b8c84f5981db5008b5859cd, type: 3}
       m_ObjectReferenceObject: {fileID: 0}
       m_ManualPerformed: 0
       m_ManualValue: 0
@@ -1010,7 +1010,7 @@ MonoBehaviour:
       m_ManualQueueWasCompletedThisFrame: 0
       m_ManualQueueValue: 0
       m_ManualQueueTargetFrame: 0
-    m_Capture: {fileID: 11400000, guid: d6e15a52475c2564ca7d2977fdece24a, type: 2}
+    m_Capture: {fileID: 11400000, guid: 72c39edbc5fea456ab30a2ef2ea6d4d0, type: 2}
     m_IsQuickAction: 1
   - m_Name: Grab
     m_ToggleInput:
@@ -1043,7 +1043,7 @@ MonoBehaviour:
       m_ManualQueueWasCompletedThisFrame: 0
       m_ManualQueueValue: 0
       m_ManualQueueTargetFrame: 0
-    m_Capture: {fileID: 11400000, guid: 3861c298d39c60c44b16920421444875, type: 2}
+    m_Capture: {fileID: 11400000, guid: 2c7c6caedfd0a43e3a614236a83aa148, type: 2}
     m_IsQuickAction: 1
   - m_Name: Thumb
     m_ToggleInput:
@@ -1076,7 +1076,7 @@ MonoBehaviour:
       m_ManualQueueWasCompletedThisFrame: 0
       m_ManualQueueValue: 0
       m_ManualQueueTargetFrame: 0
-    m_Capture: {fileID: 11400000, guid: 9d8c9c84da35a7c4c89efd57343c1df8, type: 2}
+    m_Capture: {fileID: 11400000, guid: b8da6254ca32341d6b80019659732616, type: 2}
     m_IsQuickAction: 0
   - m_Name: Open
     m_ToggleInput:
@@ -1109,7 +1109,7 @@ MonoBehaviour:
       m_ManualQueueWasCompletedThisFrame: 0
       m_ManualQueueValue: 0
       m_ManualQueueTargetFrame: 0
-    m_Capture: {fileID: 11400000, guid: 05293ab353dc8a747a36ed129311686d, type: 2}
+    m_Capture: {fileID: 11400000, guid: 7ea145a784214457f9e6950f55d58b34, type: 2}
     m_IsQuickAction: 0
   - m_Name: Fist
     m_ToggleInput:
@@ -1142,9 +1142,9 @@ MonoBehaviour:
       m_ManualQueueWasCompletedThisFrame: 0
       m_ManualQueueValue: 0
       m_ManualQueueTargetFrame: 0
-    m_Capture: {fileID: 11400000, guid: 2a7c8ca0feac7cc44a5c225164ef311d, type: 2}
+    m_Capture: {fileID: 11400000, guid: fa004868963da45f6a2e6520cfd82522, type: 2}
     m_IsQuickAction: 0
-  m_RestingHandExpressionCapture: {fileID: 11400000, guid: 5be099e6e6012c244bb41881b6c0ea07, type: 2}
+  m_RestingHandExpressionCapture: {fileID: 11400000, guid: 3a2050912ec71479899c69612c0af028, type: 2}
 --- !u!114 &9147200356447112767
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1160,4 +1160,4 @@ MonoBehaviour:
   m_ActionAssets:
   - {fileID: -944628639613478452, guid: 7f59cc19636f04d5cbbc64e77a20787f, type: 3}
   - {fileID: -944628639613478452, guid: b6d5c44ebe3244b7692e81ae8265eb22, type: 3}
-  - {fileID: -944628639613478452, guid: b72ab2a46d9094be38774d023beb4d34, type: 3}
+  - {fileID: -944628639613478452, guid: 1f7ec93f6b8c84f5981db5008b5859cd, type: 3}

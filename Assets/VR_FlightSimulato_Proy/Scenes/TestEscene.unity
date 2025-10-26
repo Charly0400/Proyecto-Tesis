@@ -1443,6 +1443,9 @@ MonoBehaviour:
   xrOrigin: {fileID: 1838069155}
   pilotSeat: {fileID: 2104049112}
   xrSmoothness: 5
+  invertPitch: 0
+  invertRoll: 0
+  controlSensitivity: 1
   aircraft: {fileID: 58136039}
 --- !u!54 &58136041
 Rigidbody:
@@ -1545,11 +1548,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6771025772611981057, guid: 1c4ad97340f6ffe479312b7abbbbebde, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.8660254
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6771025772611981057, guid: 1c4ad97340f6ffe479312b7abbbbebde, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0.5
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6771025772611981057, guid: 1c4ad97340f6ffe479312b7abbbbebde, type: 3}
       propertyPath: m_LocalRotation.z
@@ -1920,6 +1923,10 @@ PrefabInstance:
     - target: {fileID: 3056357246258376124, guid: 1c4ad97340f6ffe479312b7abbbbebde, type: 3}
       propertyPath: m_Name
       value: Lever -1 Axis
+      objectReference: {fileID: 0}
+    - target: {fileID: 3056357246258376124, guid: 1c4ad97340f6ffe479312b7abbbbebde, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5250142808145324978, guid: 1c4ad97340f6ffe479312b7abbbbebde, type: 3}
       propertyPath: m_StaticEditorFlags
@@ -4342,6 +4349,11 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 457198364}
   m_Mesh: {fileID: 4300012, guid: 29f96d9f927cf864db7fdfb707b89203, type: 3}
+--- !u!4 &472378171 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3121594163130914290, guid: d9d6183d3b3064a48bd99875dd56c4cf, type: 3}
+  m_PrefabInstance: {fileID: 1635862213}
+  m_PrefabAsset: {fileID: 0}
 --- !u!43 &476597537
 Mesh:
   m_ObjectHideFlags: 0
@@ -4608,6 +4620,11 @@ PrefabInstance:
 Transform:
   m_CorrespondingSourceObject: {fileID: 7575816528593846874, guid: 1ef01b41a8a49bc49bf5a5bfc7a37774, type: 3}
   m_PrefabInstance: {fileID: 479514195}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &507234782 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8396578546828594773, guid: 1c4ad97340f6ffe479312b7abbbbebde, type: 3}
+  m_PrefabInstance: {fileID: 999549411}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &511214065
 GameObject:
@@ -7778,11 +7795,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6771025772611981057, guid: 1c4ad97340f6ffe479312b7abbbbebde, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.8660254
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6771025772611981057, guid: 1c4ad97340f6ffe479312b7abbbbebde, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0.5
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 1739322375762912809, guid: 1c4ad97340f6ffe479312b7abbbbebde, type: 3}
@@ -10242,7 +10259,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   throttleLever: {fileID: 1553194978}
-  flightStick: {fileID: 1553194977}
+  flightStick: {fileID: 1791575325}
   m_MaxSpeed: 200
   m_TakeoffSpeed: 60
   m_RotationSpeed: 50
@@ -10252,6 +10269,9 @@ MonoBehaviour:
   xrOrigin: {fileID: 1838069155}
   pilotSeat: {fileID: 12201638}
   xrSmoothness: 5
+  invertPitch: 0
+  invertRoll: 0
+  controlSensitivity: 1
   aircraft: {fileID: 977987970}
 --- !u!54 &977987973
 Rigidbody:
@@ -10530,6 +10550,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1181896529484666942, guid: 1c4ad97340f6ffe479312b7abbbbebde, type: 3}
+      propertyPath: needsUpdate
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3056357246258376124, guid: 1c4ad97340f6ffe479312b7abbbbebde, type: 3}
       propertyPath: m_Name
       value: Lever -1 Axis
@@ -10538,6 +10562,10 @@ PrefabInstance:
       propertyPath: yAxis
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 5299191867981828205, guid: 1c4ad97340f6ffe479312b7abbbbebde, type: 3}
+      propertyPath: handle
+      value: 
+      objectReference: {fileID: 507234782}
     - target: {fileID: 5299191867981828205, guid: 1c4ad97340f6ffe479312b7abbbbebde, type: 3}
       propertyPath: m_Enabled
       value: 1
@@ -10636,11 +10664,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6771025772611981057, guid: 1c4ad97340f6ffe479312b7abbbbebde, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.8660254
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6771025772611981057, guid: 1c4ad97340f6ffe479312b7abbbbebde, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0.5
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 1739322375762912809, guid: 1c4ad97340f6ffe479312b7abbbbebde, type: 3}
@@ -13111,6 +13139,10 @@ PrefabInstance:
     - target: {fileID: 7889703963749473743, guid: 1ef01b41a8a49bc49bf5a5bfc7a37774, type: 3}
       propertyPath: m_Name
       value: GripButton (2)
+      objectReference: {fileID: 0}
+    - target: {fileID: 7889703963749473743, guid: 1ef01b41a8a49bc49bf5a5bfc7a37774, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -15609,11 +15641,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6771025772611981057, guid: 1c4ad97340f6ffe479312b7abbbbebde, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.8660254
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6771025772611981057, guid: 1c4ad97340f6ffe479312b7abbbbebde, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0.5
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6771025772611981057, guid: 1c4ad97340f6ffe479312b7abbbbebde, type: 3}
       propertyPath: m_LocalRotation.z
@@ -17682,6 +17714,9 @@ MonoBehaviour:
   xrOrigin: {fileID: 1838069155}
   pilotSeat: {fileID: 2104049112}
   xrSmoothness: 5
+  invertPitch: 0
+  invertRoll: 0
+  controlSensitivity: 1
   aircraft: {fileID: 58136039}
 --- !u!54 &1519273248
 Rigidbody:
@@ -17822,31 +17857,31 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1367298178053824840, guid: 09ea3d3936256684096cda90f1630757, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.136
+      value: 0.0438
       objectReference: {fileID: 0}
     - target: {fileID: 1367298178053824840, guid: 09ea3d3936256684096cda90f1630757, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -0.0803
+      value: -0.0688
       objectReference: {fileID: 0}
     - target: {fileID: 1367298178053824840, guid: 09ea3d3936256684096cda90f1630757, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.9925462
+      value: 0.99806
       objectReference: {fileID: 0}
     - target: {fileID: 1367298178053824840, guid: 09ea3d3936256684096cda90f1630757, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0.12186928
+      value: -0.062259287
       objectReference: {fileID: 0}
     - target: {fileID: 1367298178053824840, guid: 09ea3d3936256684096cda90f1630757, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0.000000207061
+      value: 0.00000019888436
       objectReference: {fileID: 0}
     - target: {fileID: 1367298178053824840, guid: 09ea3d3936256684096cda90f1630757, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0.000000025423864
+      value: 0.00000006297333
       objectReference: {fileID: 0}
     - target: {fileID: 1367298178053824840, guid: 09ea3d3936256684096cda90f1630757, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
-      value: 14
+      value: -7.139
       objectReference: {fileID: 0}
     - target: {fileID: 1367298178053824840, guid: 09ea3d3936256684096cda90f1630757, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
@@ -17854,6 +17889,14 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1367298178053824840, guid: 09ea3d3936256684096cda90f1630757, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1512853956249693810, guid: 09ea3d3936256684096cda90f1630757, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2665989495668992798, guid: 09ea3d3936256684096cda90f1630757, type: 3}
+      propertyPath: m_Value
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2665989495668992798, guid: 09ea3d3936256684096cda90f1630757, type: 3}
@@ -17882,7 +17925,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7314898485192341005, guid: 09ea3d3936256684096cda90f1630757, type: 3}
       propertyPath: m_Name
-      value: Player Speed
+      value: ThrottleXR
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -18597,6 +18640,10 @@ PrefabInstance:
       propertyPath: m_LocalRotation.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8154379022389998349, guid: d9d6183d3b3064a48bd99875dd56c4cf, type: 3}
+      propertyPath: handle
+      value: 
+      objectReference: {fileID: 472378171}
     - target: {fileID: 8154379022389998349, guid: d9d6183d3b3064a48bd99875dd56c4cf, type: 3}
       propertyPath: startingPosition.y
       value: 0
@@ -20281,8 +20328,12 @@ PrefabInstance:
       value: -0.1446
       objectReference: {fileID: 0}
     - target: {fileID: 2062659619665574652, guid: d9d6183d3b3064a48bd99875dd56c4cf, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2062659619665574652, guid: d9d6183d3b3064a48bd99875dd56c4cf, type: 3}
       propertyPath: m_MovementType
-      value: 2
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2062659619665574652, guid: d9d6183d3b3064a48bd99875dd56c4cf, type: 3}
       propertyPath: m_FarAttachMode
@@ -20305,12 +20356,20 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 1791575324}
     - target: {fileID: 2062659619665574652, guid: d9d6183d3b3064a48bd99875dd56c4cf, type: 3}
+      propertyPath: m_DistanceCalculationMode
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2062659619665574652, guid: d9d6183d3b3064a48bd99875dd56c4cf, type: 3}
       propertyPath: m_SecondaryAttachTransform
       value: 
       objectReference: {fileID: 1791575322}
+    - target: {fileID: 2134399600227671295, guid: d9d6183d3b3064a48bd99875dd56c4cf, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5521133489003178148, guid: d9d6183d3b3064a48bd99875dd56c4cf, type: 3}
       propertyPath: m_Name
-      value: Lever -All
+      value: JoystickXR
       objectReference: {fileID: 0}
     - target: {fileID: 5521133489003178148, guid: d9d6183d3b3064a48bd99875dd56c4cf, type: 3}
       propertyPath: m_IsActive
@@ -20332,6 +20391,14 @@ PrefabInstance:
       propertyPath: m_LocalPosition.y
       value: -0.141
       objectReference: {fileID: 0}
+    - target: {fileID: 8154379022389998349, guid: d9d6183d3b3064a48bd99875dd56c4cf, type: 3}
+      propertyPath: handle
+      value: 
+      objectReference: {fileID: 1791575326}
+    - target: {fileID: 8154379022389998349, guid: d9d6183d3b3064a48bd99875dd56c4cf, type: 3}
+      propertyPath: movingParent
+      value: 
+      objectReference: {fileID: 977987975}
     - target: {fileID: 8154379022389998349, guid: d9d6183d3b3064a48bd99875dd56c4cf, type: 3}
       propertyPath: ValueChanged.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
@@ -20375,6 +20442,22 @@ Transform:
 --- !u!136 &1791575324 stripped
 CapsuleCollider:
   m_CorrespondingSourceObject: {fileID: 1412045745875814168, guid: d9d6183d3b3064a48bd99875dd56c4cf, type: 3}
+  m_PrefabInstance: {fileID: 1791575320}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1791575325 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8154379022389998349, guid: d9d6183d3b3064a48bd99875dd56c4cf, type: 3}
+  m_PrefabInstance: {fileID: 1791575320}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e5042f86ec399b14dafd00fa6b5ec557, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!4 &1791575326 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 6128572022966230522, guid: d9d6183d3b3064a48bd99875dd56c4cf, type: 3}
   m_PrefabInstance: {fileID: 1791575320}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &1802198251
@@ -23503,11 +23586,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6771025772611981057, guid: 1c4ad97340f6ffe479312b7abbbbebde, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.8660254
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6771025772611981057, guid: 1c4ad97340f6ffe479312b7abbbbebde, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0.5
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6771025772611981057, guid: 1c4ad97340f6ffe479312b7abbbbebde, type: 3}
       propertyPath: m_LocalRotation.z

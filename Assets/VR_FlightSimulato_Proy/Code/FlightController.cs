@@ -6,8 +6,8 @@ namespace Cahrly.FlightController {
     [RequireComponent(typeof(Rigidbody))]
     public class FlightController : MonoBehaviour {
         [Header("VR Controls")]
-        [SerializeField] private XRSlider throttleLever;
-        [SerializeField] private XRJoystick flightStick;
+        [SerializeField] private ThrottleXR throttleLever;
+        [SerializeField] private JoystickXR flightStick;
 
         [Header("Flight Settings")]
         public float m_MaxSpeed = 200f;

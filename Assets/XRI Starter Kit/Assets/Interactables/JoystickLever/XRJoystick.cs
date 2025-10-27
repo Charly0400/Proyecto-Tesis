@@ -1,132 +1,157 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
-using UnityEngine.Events;
+using static Unity.Mathematics.math;
 
-namespace MikeNspired.XRIStarterKit {
-    public class XRJoystick : UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable {
-        [Header("Joystick References")]
-        [SerializeField] private Transform handle;
-        [SerializeField] private Transform movingParent;
+namespace MikeNspired.XRIStarterKit
+{
+    public class XRJoystick : MonoBehaviour
+    {
+        [SerializeField] private XRBaseInteractable xrGrabInteractable = null;
+        [SerializeField] private Transform rotationPoint = null;
+        [SerializeField] private float maxAngle = 60;
+        [SerializeField] private float shaftLength = .2f;
+        [SerializeField] private bool returnToStartOnRelease = true;
+        [SerializeField] private float returnSpeed = 5;
+        [SerializeField] private Vector2 startingPosition = Vector2.zero;
+        [SerializeField] private Vector2 returnToPosition = Vector2.zero;
+        [SerializeField] private bool xAxis = true, yAxis = true;
+        [SerializeField] private float remapValueMin = -1, remapValueMax = 1;
+        [SerializeField] private bool InvokeEventsAtStart;
 
-        [Header("Joystick Settings")]
-        [SerializeField] private float maxAngle = 60f;
-        [SerializeField] private float sensitivity = 0.3f;
-        [SerializeField] private float returnSpeed = 5f;
-        [SerializeField] private bool returnToCenter = true;
-        [SerializeField] private float deadzone = 0.05f;
+        private Transform hand, originalPositionTracker;
+        public Vector2 CurrentValue { get; private set; }
+        public Vector2 RemapValue { get; private set; }
 
-        [Header("Events")]
-        public UnityEventVector2 OnJoystickMove;
+        public UnityEventVector2 ValueChanged;
+        public UnityEventFloat SingleValueChanged;
+        private Vector3 handOffSetFromStartOfGrab;
 
-        private Transform interactorTransform;
-        private bool isGrabbed = false;
-        private Vector3 initialGrabLocalPosition;
-        private Quaternion initialHandleRotation;
-        private Vector2 currentInput;
+        private void Start()
+        {
+            OnValidate();
 
-        [System.Serializable]
-        public class UnityEventVector2 : UnityEvent<Vector2> { }
+            originalPositionTracker = new GameObject("originalPositionTracker").transform;
+            originalPositionTracker.parent = transform.parent;
+            originalPositionTracker.localPosition = transform.localPosition;
+            originalPositionTracker.localRotation = transform.localRotation;
 
-        void Start() {
-            if (movingParent == null)
-                movingParent = transform.parent;
-
-            selectEntered.AddListener(OnGrab);
-            selectExited.AddListener(OnRelease);
-
-            initialHandleRotation = handle.localRotation;
+            xrGrabInteractable.selectEntered.AddListener(OnGrab);
+            xrGrabInteractable.selectExited.AddListener((x) => hand = null);
+            xrGrabInteractable.selectExited.AddListener((x) => StartCoroutine(ReturnToZero()));
+            if (InvokeEventsAtStart)
+                InvokeUnityEvents();
         }
 
-        void OnGrab(SelectEnterEventArgs args) {
-            interactorTransform = args.interactorObject.GetAttachTransform(this);
-            isGrabbed = true;
+        private void OnValidate()
+        {
+            if (!xrGrabInteractable)
+                xrGrabInteractable = GetComponent<XRBaseInteractable>();
 
-            // Mismo enfoque que el throttle
-            Vector3 grabWorldPosition = interactorTransform.position;
-            initialGrabLocalPosition = movingParent.InverseTransformPoint(grabWorldPosition);
+            if(rotationPoint)
+                SetStartPosition();
+        }
 
+        private void SetStartPosition()
+        {
+            float x = remap(-1, 1, -shaftLength, shaftLength, startingPosition.x);
+            float z = remap(-1, 1, -shaftLength, shaftLength, startingPosition.y);
+            SetHandleRotation(new Vector3(x, 0, z));
+        }
+
+        private void OnGrab(SelectEnterEventArgs x)
+        {
             StopAllCoroutines();
+            hand = x.interactorObject.transform;
+            handOffSetFromStartOfGrab = x.interactorObject.transform.position - transform.position;
         }
 
-        void OnRelease(SelectExitEventArgs args) {
-            isGrabbed = false;
-            interactorTransform = null;
 
-            if (returnToCenter)
-                StartCoroutine(ReturnToCenter());
+        private void Update()
+        {
+            if (!hand) return;
+
+            GetVectorProjectionFromHand(out var locRot);
+            SetHandleRotation(locRot);
+            InvokeUnityEvents();
         }
 
-        public override void ProcessInteractable(XRInteractionUpdateOrder.UpdatePhase updatePhase) {
-            base.ProcessInteractable(updatePhase);
+        private void GetVectorProjectionFromHand(out Vector3 locRot)
+        {
+            //Projection
+            Vector3 positionToProject = hand.position - handOffSetFromStartOfGrab;
+            Vector3 v = positionToProject - transform.position;
+            Vector3 projection = Vector3.ProjectOnPlane(v, originalPositionTracker.up);
 
-            if (updatePhase == XRInteractionUpdateOrder.UpdatePhase.Dynamic) {
-                if (isSelected) {
-                    UpdateJoystickPosition();
-                }
-            }
+            Vector3 projectedPoint;
+            if (xAxis & yAxis)
+                projectedPoint = transform.position + Vector3.ClampMagnitude(projection, 1);
+            else
+                projectedPoint = transform.position + new Vector3(Mathf.Clamp(projection.x, -1, 1), 0, Mathf.Clamp(projection.z, -1, 1));
+
+            locRot = transform.InverseTransformPoint(projectedPoint);
         }
 
-        void UpdateJoystickPosition() {
-            if (interactorTransform == null) return;
+        private void SetHandleRotation(Vector3 locRot)
+        {
+            float x = remap(-shaftLength, shaftLength, -1, 1, locRot.x);
+            float z = remap(-shaftLength, shaftLength, -1, 1, locRot.z);
 
-            Vector3 currentPosition = interactorTransform.position;
-            Vector3 currentLocalPosition = movingParent.InverseTransformPoint(currentPosition);
+            Vector3 newValue = Vector3.zero;
+            if (xAxis & yAxis)
+                newValue = Vector2.ClampMagnitude(new Vector2(x, z), 1);
 
-            // Calcular desplazamiento desde posición inicial
-            Vector3 displacement = currentLocalPosition - initialGrabLocalPosition;
+            if (!xAxis)
+                newValue = new Vector2(0, Mathf.Clamp(z, -1, 1));
+            if (!yAxis)
+                newValue = new Vector2(Mathf.Clamp(x, -1, 1), 0);
 
-            Vector2 rawInput = new Vector2(
-                Mathf.Clamp(displacement.x * sensitivity, -1f, 1f),
-                Mathf.Clamp(displacement.z * sensitivity, -1f, 1f)
-            );
+            rotationPoint.localEulerAngles = new Vector3(newValue.y * maxAngle, 0, -newValue.x * maxAngle);
 
-            // Aplicar deadzone
-            if (rawInput.magnitude < deadzone)
-                rawInput = Vector2.zero;
-
-            currentInput = rawInput;
-
-            // Actualizar visual
-            UpdateVisual();
-
-            // Disparar evento
-            OnJoystickMove?.Invoke(currentInput);
+            CurrentValue = newValue;
         }
 
-        void UpdateVisual() {
-            if (handle != null) {
-                handle.localRotation = initialHandleRotation *
-                    Quaternion.Euler(currentInput.y * maxAngle, 0f, -currentInput.x * maxAngle);
-            }
+        private void InvokeUnityEvents()
+        {
+            RemapValue = remap(-1, 1, remapValueMin, remapValueMax, CurrentValue);
+            ValueChanged.Invoke(RemapValue);
+            if (!xAxis)
+                SingleValueChanged.Invoke(RemapValue.y);
+            if (!yAxis)
+                SingleValueChanged.Invoke(RemapValue.x);
         }
 
-        IEnumerator ReturnToCenter() {
-            Vector2 startInput = currentInput;
-            float elapsedTime = 0f;
+        private IEnumerator ReturnToZero()
+        {
+            if (!returnToStartOnRelease) yield break;
 
-            while (elapsedTime < 1f) {
-                elapsedTime += Time.deltaTime * returnSpeed;
-                currentInput = Vector2.Lerp(startInput, Vector2.zero, elapsedTime);
-
-                UpdateVisual();
-                OnJoystickMove?.Invoke(currentInput);
-
+            while (CurrentValue.magnitude >= .01f)
+            {
+                CurrentValue = Vector2.Lerp(CurrentValue, returnToPosition, Time.deltaTime * returnSpeed);
+                rotationPoint.localEulerAngles = new Vector3(CurrentValue.y * maxAngle, 0, -CurrentValue.x * maxAngle);
+                InvokeUnityEvents();
                 yield return null;
             }
 
-            currentInput = Vector2.zero;
-            UpdateVisual();
-            OnJoystickMove?.Invoke(currentInput);
+            CurrentValue = returnToPosition;
+            rotationPoint.localEulerAngles = returnToPosition;
+            InvokeUnityEvents();
         }
 
-        public void SetMovingParent(Transform parent) {
-            movingParent = parent;
-        }
+        private void OnDrawGizmosSelected()
+        {
+            Gizmos.color = Color.cyan;
+            if (xAxis && yAxis)
+                Gizmos.DrawWireSphere(transform.position, shaftLength);
+            if (!xAxis && yAxis)
+                Gizmos.DrawLine(transform.position - transform.forward * shaftLength, transform.position + transform.forward * shaftLength);
+            if (!yAxis && xAxis)
+                Gizmos.DrawLine(transform.position - transform.right * shaftLength, transform.position + transform.right * shaftLength);
 
-        public Vector2 GetCurrentInput() {
-            return currentInput;
+            Gizmos.DrawLine(transform.position, transform.position + transform.up * shaftLength);
         }
     }
 }

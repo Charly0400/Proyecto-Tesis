@@ -37,14 +37,16 @@ namespace Cahrly.FlightController {
         public AircraftVehicle aircraft;
         private bool isInAircraft = false;
 
+        #region Unity Methods
         private void Awake() {
             m_Rigidbody = GetComponent<Rigidbody>();
             SetupRigidbody();
         }
 
-        void Start() {
+        private void Start() {
             SetUpLeverAndJoystick();
         }
+        #endregion
 
         private void SetupRigidbody() {
             m_Rigidbody.linearDamping = 0.2f;
@@ -53,20 +55,15 @@ namespace Cahrly.FlightController {
         }
 
         private void SetUpLeverAndJoystick() {
-            // Configurar throttle lever (como antes)
+            // Configurar throttle lever  
             if (throttleLever != null) {
                 throttleLever.SetMovingParent(transform);
                 throttleLever.OnValueChange.AddListener(OnThrottleInput);
             }
 
-            // Configurar flight stick - FORMA SIMPLIFICADA
             if (flightStick != null) {
                 // Solo necesitamos conectar el evento
                 flightStick.OnJoystickMove.AddListener(OnJoystickInput);
-
-                // El moving parent ya está configurado en el inspector
-                // O podemos asignarlo manualmente:
-                // flightStick.SetMovingParent(transform);
             }
 
             Debug.Log("Controles VR configurados correctamente");
@@ -88,13 +85,18 @@ namespace Cahrly.FlightController {
             m_DirectionInput = Vector2.ClampMagnitude(input, 1f);
         }
 
+        private void Update() {
+
+        }
+
         private void FixedUpdate() {
             if (!m_EngineOn) return;
 
             MovePlane();
             ApplyLift();
             RotatePlane();
-            UpdateXRPosition();
+
+            
         }
 
         private void MovePlane() {
@@ -134,14 +136,17 @@ namespace Cahrly.FlightController {
             xrOrigin.rotation = Quaternion.Slerp(xrOrigin.rotation, pilotSeat.rotation, Time.deltaTime * (xrSmoothness / 2f));
         }
 
+        #region ThrottleAndLeverInputs
         public void SetThrottle(float input) {
             m_ThrottleInput = Mathf.Clamp01(input);
         }
 
         public void SetDirectionInput(Vector2 input) {
             m_DirectionInput = Vector2.ClampMagnitude(input, 1f);
-        }
+        } 
+        #endregion
 
+        #region Engine
         public void EngineState(int state) {
             if (state == 0) StopEngine();
             else StartEngine();
@@ -157,7 +162,8 @@ namespace Cahrly.FlightController {
             m_EngineOn = false;
             m_ThrottleInput = 0f;
             Debug.Log("Motor apagado");
-        }
+        } 
+        #endregion
 
         public void RestartLevel() {
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);

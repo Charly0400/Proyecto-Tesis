@@ -1,0 +1,8 @@
+newmtl Tornillos
+Kd 0.3679245 0.3679245 0.3679245
+d 1
+
+newmtl Tornillos_Fondo
+Kd 0.1981132 0.1934407 0.1934407
+d 1
+

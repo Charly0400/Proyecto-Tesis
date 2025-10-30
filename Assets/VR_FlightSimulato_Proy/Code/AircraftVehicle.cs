@@ -9,13 +9,6 @@ public class AircraftVehicle : MonoBehaviour {
 
     [Header("Settings")]
     public bool desactivarMovimiento = true;
-    //public bool lockPosition = true;
-    //public bool lockRotation = true;
-    //public float updateThreshold = 0.01f; // Umbral para evitar updates innecesarios
-
-    //private bool isPlayerSeated = false;
-    //private Vector3 lastPosition;
-    //private Quaternion lastRotation;
 
     private bool isPlayerSeated = false;
     private LocomotionProvider[] proveedoresMovimiento;
@@ -61,30 +54,6 @@ public class AircraftVehicle : MonoBehaviour {
         }
     }
 
-    //private void FixedUpdate() {
-    //    if (isPlayerSeated && xrOrigin != null && pilotSeat != null) {
-    //        UpdateXRPosition();
-    //    }
-    //}
-
-    //private void UpdateXRPosition() {
-    //    bool positionChanged = Vector3.Distance(lastPosition, pilotSeat.position) > updateThreshold;
-    //    bool rotationChanged = Quaternion.Angle(lastRotation, pilotSeat.rotation) > updateThreshold;
-
-    //    // Solo actualizar si hay cambios significativos
-    //    if (positionChanged || rotationChanged) {
-    //        if (lockPosition) {
-    //            xrOrigin.position = pilotSeat.position;
-    //        }
-
-    //        if (lockRotation) {
-    //            xrOrigin.rotation = pilotSeat.rotation;
-    //        }
-
-    //        lastPosition = pilotSeat.position;
-    //        lastRotation = pilotSeat.rotation;
-    //    }
-    //}
     private void DesactivarMovimientoXR() {
         // Desactivar todos los proveedores de locomoción
         foreach (var proveedor in proveedoresMovimiento) {

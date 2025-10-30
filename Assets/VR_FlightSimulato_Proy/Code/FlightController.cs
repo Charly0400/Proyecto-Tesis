@@ -129,13 +129,6 @@ namespace Cahrly.FlightController {
             m_Rigidbody.MoveRotation(m_Rigidbody.rotation * Quaternion.Euler(pitch, yaw, roll));
         }
 
-        private void UpdateXRPosition() {
-            if (xrOrigin == null || pilotSeat == null) return;
-
-            xrOrigin.position = Vector3.Lerp(xrOrigin.position, pilotSeat.position, Time.deltaTime * xrSmoothness);
-            xrOrigin.rotation = Quaternion.Slerp(xrOrigin.rotation, pilotSeat.rotation, Time.deltaTime * (xrSmoothness / 2f));
-        }
-
         #region ThrottleAndLeverInputs
         public void SetThrottle(float input) {
             m_ThrottleInput = Mathf.Clamp01(input);

@@ -146,7 +146,7 @@ namespace MikeNspired.XRIStarterKit {
                 // Usar coordenadas locales relativas al moving parent
                 Vector3 currentLocalPosition = m_MovingParent.InverseTransformPoint(currentPosition);
 
-                // Calcular el desplazamiento desde la posición inicial de grab
+                // Calcular el desplazamiento desde la posición inicial de grab 
                 float displacement = currentLocalPosition.z - m_InitialGrabLocalPosition.z;
 
                 // Convertir desplazamiento a valor del slider

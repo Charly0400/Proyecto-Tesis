@@ -74,7 +74,7 @@ namespace MikeNspired.XRIStarterKit {
             Vector3 currentPosition = interactorTransform.position;
             Vector3 currentLocalPosition = movingParent.InverseTransformPoint(currentPosition);
 
-            // Calcular desplazamiento desde posición inicial
+            // Calcular desplazamiento desde posiciÃ³n inicial
             Vector3 displacement = currentLocalPosition - initialGrabLocalPosition;
 
             Vector2 rawInput = new Vector2(

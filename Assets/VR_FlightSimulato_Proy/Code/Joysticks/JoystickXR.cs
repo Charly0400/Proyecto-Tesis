@@ -1,8 +1,9 @@
 using System.Collections;
 using UnityEngine;
-using UnityEngine.XR.Interaction.Toolkit;
-using UnityEngine.XR.Interaction.Toolkit.Interactables;
 using UnityEngine.Events;
+using UnityEngine.XR.Interaction.Toolkit;
+using UnityEngine.XR.Interaction.Toolkit.Interactors;
+using XR.Interaction.Toolkit.Samples;
 
 namespace MikeNspired.XRIStarterKit {
     public class JoystickXR : UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable {
@@ -19,6 +20,12 @@ namespace MikeNspired.XRIStarterKit {
 
         [Header("Events")]
         public UnityEventVector2 OnJoystickMove;
+
+        [Header("Position Source (Throttle-style)")]
+        [SerializeField] private bool m_UseControllerForPosition = true;
+
+        private IXRSelectInteractor m_Interactor;
+        private ControllerInputActionManager m_Controller;
 
         private Transform interactorTransform;
         private bool isGrabbed = false;
@@ -40,19 +47,31 @@ namespace MikeNspired.XRIStarterKit {
         }
 
         void OnGrab(SelectEnterEventArgs args) {
-            interactorTransform = args.interactorObject.GetAttachTransform(this);
+            // Cachear interactor y posible ControllerInputActionManager (igual que ThrottleXR)
+            m_Interactor = args.interactorObject;
+            m_Controller = m_Interactor.transform.GetComponentInParent<ControllerInputActionManager>();
+
             isGrabbed = true;
 
-            // Mismo enfoque que el throttle
+            // Elegir la transform a usar (controller root o attach transform)
+            Transform interactorTransform = m_UseControllerForPosition && m_Controller != null
+                ? m_Controller.transform
+                : m_Interactor.GetAttachTransform(this);
+
             Vector3 grabWorldPosition = interactorTransform.position;
-            initialGrabLocalPosition = movingParent.InverseTransformPoint(grabWorldPosition);
+
+            if (movingParent != null)
+                initialGrabLocalPosition = movingParent.InverseTransformPoint(grabWorldPosition);
+            else
+                initialGrabLocalPosition = transform.InverseTransformPoint(grabWorldPosition);
 
             StopAllCoroutines();
         }
 
         void OnRelease(SelectExitEventArgs args) {
             isGrabbed = false;
-            interactorTransform = null;
+            m_Interactor = null;
+            m_Controller = null;
 
             if (returnToCenter)
                 StartCoroutine(ReturnToCenter());
@@ -69,12 +88,27 @@ namespace MikeNspired.XRIStarterKit {
         }
 
         void UpdateJoystickPosition() {
-            if (interactorTransform == null) return;
+            if (m_Interactor == null) return;
 
-            Vector3 currentPosition = interactorTransform.position;
-            Vector3 currentLocalPosition = movingParent.InverseTransformPoint(currentPosition);
+            Vector3 currentPosition;
 
-            // Calcular desplazamiento desde posición inicial
+            // Obtener la posición actual según la fuente configurada
+            if (m_UseControllerForPosition) {
+                if (m_Controller != null)
+                    currentPosition = m_Controller.transform.position;
+                else
+                    // Fallback: si activaste la opción pero no hay Controller component, usa attach transform
+                    currentPosition = m_Interactor.GetAttachTransform(this).position;
+            }
+            else {
+                currentPosition = m_Interactor.GetAttachTransform(this).position;
+            }
+
+            Vector3 currentLocalPosition = movingParent != null
+                ? movingParent.InverseTransformPoint(currentPosition)
+                : transform.InverseTransformPoint(currentPosition);
+
+            // Calcular desplazamiento desde la posición inicial (misma lógica que antes)
             Vector3 displacement = currentLocalPosition - initialGrabLocalPosition;
 
             Vector2 rawInput = new Vector2(
@@ -82,16 +116,12 @@ namespace MikeNspired.XRIStarterKit {
                 Mathf.Clamp(displacement.z * sensitivity, -1f, 1f)
             );
 
-            // Aplicar deadzone
             if (rawInput.magnitude < deadzone)
                 rawInput = Vector2.zero;
 
             currentInput = rawInput;
 
-            // Actualizar visual
             UpdateVisual();
-
-            // Disparar evento
             OnJoystickMove?.Invoke(currentInput);
         }
 

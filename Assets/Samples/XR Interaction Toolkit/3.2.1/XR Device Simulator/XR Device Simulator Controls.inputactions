@@ -36,7 +36,7 @@
                     "name": "Toggle Manipulate Left",
                     "type": "Button",
                     "id": "847b79d9-a69b-4484-8688-a4bf40e58163",
-                    "expectedControlType": "Button",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
@@ -45,7 +45,7 @@
                     "name": "Toggle Manipulate Right",
                     "type": "Button",
                     "id": "241f6068-ebc8-4c6d-b747-8bc2c1f74f87",
-                    "expectedControlType": "Button",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
@@ -63,7 +63,7 @@
                     "name": "Manipulate Left",
                     "type": "Button",
                     "id": "07c46cc4-c35d-4364-a878-68fad8ab8c64",
-                    "expectedControlType": "Button",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
@@ -72,7 +72,7 @@
                     "name": "Manipulate Right",
                     "type": "Button",
                     "id": "307cb608-f32e-48a3-8ce6-d1cd83a5fb90",
-                    "expectedControlType": "Button",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
@@ -108,7 +108,7 @@
                     "name": "Stop Manipulation",
                     "type": "Button",
                     "id": "974ae49e-da4e-4dc8-a6be-cb63986d8f8e",
-                    "expectedControlType": "Button",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
@@ -162,7 +162,7 @@
                     "name": "Z Constraint",
                     "type": "Button",
                     "id": "d3e9308c-6f8c-46f7-bb6f-14422c345983",
-                    "expectedControlType": "Button",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
@@ -180,7 +180,7 @@
                     "name": "Y Constraint",
                     "type": "Button",
                     "id": "11ab79c6-b9c6-4301-8086-3e9c6904ef14",
-                    "expectedControlType": "Button",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
@@ -189,7 +189,7 @@
                     "name": "Reset",
                     "type": "Button",
                     "id": "339ccb79-aee9-4ba4-8864-3b6c81c199db",
-                    "expectedControlType": "Button",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
@@ -198,7 +198,7 @@
                     "name": "Toggle Cursor Lock",
                     "type": "Button",
                     "id": "9bd36ab1-f676-4ff4-8a4d-ba0c6fb36268",
-                    "expectedControlType": "Button",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
@@ -267,6 +267,39 @@
                 },
                 {
                     "name": "1D Axis",
+                    "id": "7b4d1345-aa7d-4a96-9c4f-f100f320c46a",
+                    "path": "1DAxis",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Keyboard X Translate",
+                    "isComposite": true,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "negative",
+                    "id": "f61d9828-1b9d-49ff-9288-664459fc0892",
+                    "path": "<Gamepad>/leftStick/left",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Keyboard X Translate",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "positive",
+                    "id": "10784844-8115-43a7-8f03-d202c0266f6c",
+                    "path": "<Gamepad>/leftStick/right",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Keyboard X Translate",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "1D Axis",
                     "id": "cb7c4679-31f4-4170-885a-e7d78c049443",
                     "path": "1DAxis",
                     "interactions": "",
@@ -300,6 +333,39 @@
                 },
                 {
                     "name": "1D Axis",
+                    "id": "f13f5e2e-72cb-48d5-ad40-eb6c90fe679a",
+                    "path": "1DAxis",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Keyboard Z Translate",
+                    "isComposite": true,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "negative",
+                    "id": "b42b83c3-2270-42c4-8ce3-19e6d66b5921",
+                    "path": "<Gamepad>/leftStick/down",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Keyboard Z Translate",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "positive",
+                    "id": "3c68d358-dd6a-47ff-b77d-06c3321e8666",
+                    "path": "<Gamepad>/leftStick/up",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Keyboard Z Translate",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "1D Axis",
                     "id": "fca20498-bf6f-4824-ba15-6dc2d191eb2f",
                     "path": "1DAxis",
                     "interactions": "",
@@ -324,6 +390,39 @@
                     "name": "positive",
                     "id": "f5223aed-93c0-4633-8aa3-c393ce890872",
                     "path": "<Keyboard>/e",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Keyboard Y Translate",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "1D Axis",
+                    "id": "22bd36d2-8a32-4dd8-8b58-90d3be473330",
+                    "path": "1DAxis",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Keyboard Y Translate",
+                    "isComposite": true,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "negative",
+                    "id": "1d6777a5-d485-4ff1-b8fd-27e1e91d420e",
+                    "path": "<Gamepad>/leftShoulder",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Keyboard Y Translate",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "positive",
+                    "id": "983f2c50-df8c-4710-bf34-f7df2eb42f9d",
+                    "path": "<Gamepad>/rightShoulder",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
@@ -542,6 +641,17 @@
                 },
                 {
                     "name": "",
+                    "id": "a64fb481-adc4-4349-80ff-3436ab043358",
+                    "path": "<Gamepad>/start",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Toggle Manipulate Right",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
                     "id": "b62df009-54c9-4b03-9721-07ca66fe1bdf",
                     "path": "<Keyboard>/t",
                     "interactions": "",
@@ -553,8 +663,30 @@
                 },
                 {
                     "name": "",
+                    "id": "a22f479c-42f1-4cc5-b8cf-41b8d679730c",
+                    "path": "<Gamepad>/select",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Toggle Manipulate Left",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
                     "id": "51f71c9d-9024-4bdd-8ea6-19b987e261b1",
                     "path": "<Keyboard>/u",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Toggle Manipulate Body",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "3318c973-f15c-4436-b486-d0ef89f704bc",
+                    "path": "<Keyboard>/a",
                     "interactions": "",
                     "processors": "",
                     "groups": "",

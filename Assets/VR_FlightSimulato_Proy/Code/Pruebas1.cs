@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using System.Collections.Generic;
 
-namespace Cahrly.FlightController {
+namespace Charly.FlightController {
     [RequireComponent(typeof(Rigidbody))]
     public class Pruebas1 : MonoBehaviour {
         [Header("VR Controls")]

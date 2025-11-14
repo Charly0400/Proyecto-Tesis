@@ -2,7 +2,7 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-namespace Cahrly.FlightController {
+namespace Charly.FlightController {
     [RequireComponent(typeof(Rigidbody))]
     public class FlightController : MonoBehaviour {
         [Header("VR Controls")]
@@ -29,6 +29,9 @@ namespace Cahrly.FlightController {
         public bool invertRoll = false;
         public float controlSensitivity = 1.0f;
 
+        public float CurrentSpeed { get; private set; }
+        public float CurrentSpeedMps { get; private set; }
+
         private Rigidbody m_Rigidbody;
         private float m_ThrottleInput;
         private Vector2 m_DirectionInput;
@@ -46,7 +49,26 @@ namespace Cahrly.FlightController {
         private void Start() {
             SetUpLeverAndJoystick();
         }
+
+        private void Update() {
+            // Actualizar valores de velocidad para instrumentos
+            UpdateSpeedValues();
+        }
+
+        private void FixedUpdate() {
+            if (!m_EngineOn) return;
+
+            MovePlane();
+            ApplyLift();
+            RotatePlane();
+        }
         #endregion
+
+        private void UpdateSpeedValues() {
+            // Calcular velocidad actual en m/s y unidades del juego
+            CurrentSpeedMps = m_Rigidbody.linearVelocity.magnitude;
+            CurrentSpeed = m_ThrottleInput * m_MaxSpeed; // Velocidad objetivo basada en throttle
+        }
 
         private void SetupRigidbody() {
             m_Rigidbody.linearDamping = 0.2f;
@@ -83,20 +105,6 @@ namespace Cahrly.FlightController {
             if (invertRoll) input.x = -input.x;
 
             m_DirectionInput = Vector2.ClampMagnitude(input, 1f);
-        }
-
-        private void Update() {
-
-        }
-
-        private void FixedUpdate() {
-            if (!m_EngineOn) return;
-
-            MovePlane();
-            ApplyLift();
-            RotatePlane();
-
-            
         }
 
         private void MovePlane() {

@@ -2,7 +2,7 @@ using MikeNspired.XRIStarterKit;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Cahrly.FlightController {
+namespace Charly.FlightController {
     [RequireComponent(typeof(Rigidbody))]
     public class Plane_Controller : MonoBehaviour {
         #region Inspector Fields - Thrust / Lift / Steering / Drag

@@ -52,7 +52,7 @@ namespace Charly.FlightController.Instruments {
         [Tooltip("Porcentajes de ángulo para cada velocidad clave (0-1)")]
         [SerializeField] private float[] m_AnglePercentages = { 0f, 0.1f, 0.18f, 0.25f, 0.32f, 0.38f, 0.44f, 0.58f, 0.72f, 0.86f, 1f };
 
-        [Header("Debug")]
+        [Header("Debug (Gizmos)")]
         [Tooltip("Velocidad para pruebas en el Editor")]
         [SerializeField] private float m_DebugSpeed = 0f;
         [SerializeField] private float m_radiusGizmos = 0.7f;

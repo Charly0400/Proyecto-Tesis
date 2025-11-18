@@ -2595,7 +2595,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &150753463
 Transform:
   m_ObjectHideFlags: 0
@@ -4865,13 +4865,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 345719645}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 1, w: 0}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0.001, z: 0}
-  m_LocalScale: {x: 0.15, y: 0.05, z: 0.15}
+  m_LocalScale: {x: 0.12, y: 0.05, z: 0.15}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1087750545806158953}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 180}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &345719647
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -24948,7 +24948,7 @@ SpriteRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: -2
+  m_SortingOrder: -1
   m_Sprite: {fileID: -1750127562, guid: c3d02b15e8ae6b14596d6ed57b3346b9, type: 3}
   m_Color: {r: 0.5019608, g: 0.5294118, b: 0.5019608, a: 1}
   m_FlipX: 0
@@ -34065,7 +34065,7 @@ RectTransform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5541823164412978680}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: -0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -39227,13 +39227,31 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2187698982265674378}
+  - component: {fileID: 5144253968892085345}
   m_Layer: 0
-  m_Name: Alttitud indicator
+  m_Name: Attitud indicator
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!114 &5144253968892085345
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5144253968892085344}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cdb60b23b90189d45aa4ad85e86c594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_planeTransform: {fileID: 977987975}
+  m_verticalLineTransform: {fileID: 1087750545806158953}
+  m_rollLineTransform: {fileID: 5460609833437772956}
+  m_pixelsPerDegree: 0.001
+  m_smoothnessAlpha: 0.383
 --- !u!4 &5145982381918937444
 Transform:
   m_ObjectHideFlags: 0

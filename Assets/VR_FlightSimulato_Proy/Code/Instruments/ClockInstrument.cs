@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace Charly.Instruments {
+namespace Charly.FlightController.Instruments {
     public class ClockInstrument : MonoBehaviour {
 
         [Header("Manecillas del reloj")]

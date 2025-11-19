@@ -9,7 +9,9 @@ namespace Charly.FlightController.Instruments {
         [Description("Nudos")]
         KTS,
         [Description("Kilómetros por hora")]
-        KPH
+        KPH,
+        [Description("Mach")]
+        MACH
     }
 
     public class AirSpeedInstrument : MonoBehaviour {
@@ -62,9 +64,9 @@ namespace Charly.FlightController.Instruments {
 
         // constantes de conversión (m/s -> unidad)
         private const float MPS_TO_KPH = 3.6f;
-        private const float MPS_TO_MPH = 2.2369362920544f;
-        private const float MPS_TO_KTS = 1.9438444924406f;
-
+        private const float MPS_TO_MPH = 2.23694f;
+        private const float MPS_TO_KTS = 1.94384f;
+        private const float MPS_TO_MCH = .00294f;
         void Update() {
             if (m_aircraftRigidbody == null || m_NeedleTransform == null) return;
 
@@ -88,7 +90,7 @@ namespace Charly.FlightController.Instruments {
 
             // 6. actualizar texto si aplica
             if (m_SpeedText != null) {
-                m_SpeedText.text = Mathf.RoundToInt(speedInUnit).ToString() + " " + GetUnitLabel(m_Unit);
+                m_SpeedText.text =(m_Unit == SpeedUnit.MACH) ? speedInUnit.ToString("F2") + " " + GetUnitLabel(m_Unit) : Mathf.RoundToInt(speedInUnit).ToString() + " " + GetUnitLabel(m_Unit);
             }
         }
 
@@ -132,27 +134,29 @@ namespace Charly.FlightController.Instruments {
 
         private static float GetMpsToUnitFactor(SpeedUnit unit) {
             switch (unit) {
-                case SpeedUnit.KPH: return MPS_TO_KPH;
-                case SpeedUnit.MPH: return MPS_TO_MPH;
-                case SpeedUnit.KTS: return MPS_TO_KTS;
-                default: return MPS_TO_MPH;
-            }
-        }
-
-        private static float GetMphToUnitFactor(SpeedUnit unit) {
-            switch (unit) {
-                case SpeedUnit.KPH: return 1.609344f;
-                case SpeedUnit.MPH: return 1f;
-                case SpeedUnit.KTS: return 0.86897624190065f;
-                default: return 1f;
+                case SpeedUnit.KPH:
+                    return MPS_TO_KPH;
+                case SpeedUnit.MPH:
+                    return MPS_TO_MPH;
+                case SpeedUnit.KTS:
+                    return MPS_TO_KTS;
+                case SpeedUnit.MACH:
+                    return MPS_TO_MCH;
+                default:
+                    return MPS_TO_MPH;
             }
         }
 
         private static string GetUnitLabel(SpeedUnit unit) {
             switch (unit) {
-                case SpeedUnit.KPH: return "km/h";
-                case SpeedUnit.MPH: return "MPH";
-                case SpeedUnit.KTS: return "kts";
+                case SpeedUnit.KPH:
+                    return "km/h";
+                case SpeedUnit.MPH:
+                    return "M/h";
+                case SpeedUnit.KTS:
+                    return "Knots";
+                case SpeedUnit.MACH:
+                    return "Mach";
                 default: return "MPH";
             }
         }
@@ -276,6 +280,6 @@ namespace Charly.FlightController.Instruments {
         public void ToggleDirection() {
             m_Clockwise = !m_Clockwise;
         }
-    } 
+    }
     #endregion
 }

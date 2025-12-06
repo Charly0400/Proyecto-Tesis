@@ -890,7 +890,7 @@
                     "name": "Activate",
                     "type": "Button",
                     "id": "0c0991c5-d329-4afc-8892-1076b440477c",
-                    "expectedControlType": "Button",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
@@ -3371,6 +3371,34 @@
                     "action": "Spawn Object",
                     "isComposite": false,
                     "isPartOfComposite": true
+                }
+            ]
+        },
+        {
+            "name": "Planes",
+            "id": "84df754c-927f-42d0-86f9-9e4994b85e2f",
+            "actions": [
+                {
+                    "name": "Breaks",
+                    "type": "Button",
+                    "id": "42c7138c-b102-4936-8be0-084eec79bdf9",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "c1623c5c-e0b7-412e-b774-4202dc81cee3",
+                    "path": "<Keyboard>/s",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Breaks",
+                    "isComposite": false,
+                    "isPartOfComposite": false
                 }
             ]
         }

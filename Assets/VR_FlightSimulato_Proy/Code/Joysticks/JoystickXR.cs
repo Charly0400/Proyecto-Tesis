@@ -18,8 +18,14 @@ namespace MikeNspired.XRIStarterKit {
         [SerializeField] private bool returnToCenter = true;
         [SerializeField] private float deadzone = 0.05f;
 
+        [Header("Yaw (Rotación) Settings")]
+        [SerializeField] private float yawSensitivity = 2.0f; // Sensibilidad para la rotación
+        [SerializeField] private float yawDeadzone = 5f; // Zona muerta en grados
+        [SerializeField] private bool enableYawControl = true;
+
         [Header("Events")]
         public UnityEventVector2 OnJoystickMove;
+        public UnityEventFloat OnYawInput; // Nuevo evento para la guiñada
 
         [Header("Position Source (Throttle-style)")]
         [SerializeField] private bool m_UseControllerForPosition = true;
@@ -32,9 +38,18 @@ namespace MikeNspired.XRIStarterKit {
         private Vector3 initialGrabLocalPosition;
         private Quaternion initialHandleRotation;
         private Vector2 currentInput;
+        private float currentYawInput;
+
+        // Nuevas variables para control de rotación
+        private Quaternion initialControllerRotation;
+        private Transform controllerTransform;
 
         [System.Serializable]
         public class UnityEventVector2 : UnityEvent<Vector2> { }
+
+        [System.Serializable]
+        public class UnityEventFloat : UnityEvent<float> { }
+
 
         void Start() {
             if (movingParent == null)
@@ -47,23 +62,24 @@ namespace MikeNspired.XRIStarterKit {
         }
 
         void OnGrab(SelectEnterEventArgs args) {
-            // Cachear interactor y posible ControllerInputActionManager (igual que ThrottleXR)
             m_Interactor = args.interactorObject;
             m_Controller = m_Interactor.transform.GetComponentInParent<ControllerInputActionManager>();
 
             isGrabbed = true;
 
             // Elegir la transform a usar (controller root o attach transform)
-            Transform interactorTransform = m_UseControllerForPosition && m_Controller != null
-                ? m_Controller.transform
-                : m_Interactor.GetAttachTransform(this);
+            controllerTransform = m_UseControllerForPosition && m_Controller != null ?
+                m_Controller.transform : m_Interactor.GetAttachTransform(this);
 
-            Vector3 grabWorldPosition = interactorTransform.position;
+            Vector3 grabWorldPosition = controllerTransform.position;
 
             if (movingParent != null)
                 initialGrabLocalPosition = movingParent.InverseTransformPoint(grabWorldPosition);
             else
                 initialGrabLocalPosition = transform.InverseTransformPoint(grabWorldPosition);
+
+            // Guardar la rotación inicial del controlador
+            initialControllerRotation = controllerTransform.rotation;
 
             StopAllCoroutines();
         }
@@ -75,6 +91,8 @@ namespace MikeNspired.XRIStarterKit {
 
             if (returnToCenter)
                 StartCoroutine(ReturnToCenter());
+            // Notificar que la guiñada volvió a cero
+            OnYawInput?.Invoke(0f);
         }
 
         public override void ProcessInteractable(XRInteractionUpdateOrder.UpdatePhase updatePhase) {
@@ -83,6 +101,7 @@ namespace MikeNspired.XRIStarterKit {
             if (updatePhase == XRInteractionUpdateOrder.UpdatePhase.Dynamic) {
                 if (isSelected) {
                     UpdateJoystickPosition();
+                    UpdateYawInput();
                 }
             }
         }
@@ -125,6 +144,33 @@ namespace MikeNspired.XRIStarterKit {
             OnJoystickMove?.Invoke(currentInput);
         }
 
+        void UpdateYawInput() {
+            if (!enableYawControl || controllerTransform == null) return;
+
+            // Calcular la rotación relativa desde el agarre inicial
+            Quaternion relativeRotation = Quaternion.Inverse(initialControllerRotation) * controllerTransform.rotation;
+
+            // Convertir a ángulos de Euler
+            Vector3 relativeEuler = relativeRotation.eulerAngles;
+
+            // Normalizar ángulos a -180 a 180
+            float yawAngle = relativeEuler.x;
+            if (yawAngle > 180f) yawAngle -= 360f;
+
+            // Aplicar zona muerta
+            if (Mathf.Abs(yawAngle) < yawDeadzone) {
+                currentYawInput = 0f;
+            }
+            else {
+                // Normalizar a -1 a 1
+                currentYawInput = Mathf.Clamp(yawAngle / 90f * yawSensitivity, -1f, 1f);
+            }
+
+            // Disparar evento de guiñada
+            OnYawInput?.Invoke(currentYawInput);
+        }
+
+
         void UpdateVisual() {
             if (handle != null) {
                 handle.localRotation = initialHandleRotation *
@@ -157,6 +203,10 @@ namespace MikeNspired.XRIStarterKit {
 
         public Vector2 GetCurrentInput() {
             return currentInput;
+        }
+
+        public float GetCurrentYawInput() {
+            return currentYawInput;
         }
     }
 }

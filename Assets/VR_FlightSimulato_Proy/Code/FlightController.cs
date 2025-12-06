@@ -1,6 +1,7 @@
 ﻿using MikeNspired.XRIStarterKit;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.Windows;
 
 namespace Charly.FlightController {
     [RequireComponent(typeof(Rigidbody))]
@@ -14,6 +15,7 @@ namespace Charly.FlightController {
         public float m_TakeoffSpeed = 60f;
         public float m_RotationSpeed = 50f;
         public float m_LiftForce = 15f;
+        public float m_YawSpeed = 30f;
 
         [Header("Aerodynamics")]
         public float m_MinLiftSpeed = 40f;
@@ -27,7 +29,12 @@ namespace Charly.FlightController {
         [Header("Control Settings")]
         public bool invertPitch = false;
         public bool invertRoll = false;
+        public bool invertYaw = false; // Nueva opción para invertir guiñada
         public float controlSensitivity = 1.0f;
+        public float yawSensitivity = 1.0f; // Sensibilidad separada para guiñada
+
+        [Header("Breaks")]
+        public SphereCollider[] wheels; 
 
         public float CurrentSpeed { get; private set; }
         public float CurrentSpeedMps { get; private set; }
@@ -35,6 +42,7 @@ namespace Charly.FlightController {
         private Rigidbody m_Rigidbody;
         private float m_ThrottleInput;
         private Vector2 m_DirectionInput;
+        private float m_YawInput; // Nueva variable para guiñada
         private bool m_EngineOn;
 
         public AircraftVehicle aircraft;
@@ -86,6 +94,7 @@ namespace Charly.FlightController {
             if (flightStick != null) {
                 // Solo necesitamos conectar el evento
                 flightStick.OnJoystickMove.AddListener(OnJoystickInput);
+                flightStick.OnYawInput.AddListener(OnYawInput);
             }
 
             Debug.Log("Controles VR configurados correctamente");
@@ -105,6 +114,13 @@ namespace Charly.FlightController {
             if (invertRoll) input.x = -input.x;
 
             m_DirectionInput = Vector2.ClampMagnitude(input, 1f);
+        }
+        private void OnYawInput(float input) {
+            // Aplicar sensibilidad e inversión a la guiñada
+            input *= yawSensitivity;
+            if (invertYaw) input = -input;
+
+            m_YawInput = Mathf.Clamp(input, -1f, 1f);
         }
 
         private void MovePlane() {
@@ -129,10 +145,11 @@ namespace Charly.FlightController {
 
             float speedFactor = Mathf.Clamp(currentSpeed / m_MaxSpeed, 0.3f, 1f);
 
-            // Mapeo estándar: X = Roll, Y = Pitch
+            // Alabeo y cabeceo del joystick
             float pitch = m_DirectionInput.y * m_RotationSpeed * speedFactor * Time.fixedDeltaTime;
             float roll = -m_DirectionInput.x * m_RotationSpeed * speedFactor * Time.fixedDeltaTime;
-            float yaw = m_DirectionInput.x * m_RotationSpeed * 0.5f * speedFactor * Time.fixedDeltaTime;
+            // Guiñada separada por rotación de muñeca
+            float yaw = m_YawInput * m_YawSpeed * speedFactor * Time.fixedDeltaTime;
 
             m_Rigidbody.MoveRotation(m_Rigidbody.rotation * Quaternion.Euler(pitch, yaw, roll));
         }
@@ -168,6 +185,15 @@ namespace Charly.FlightController {
 
         public void RestartLevel() {
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        }
+
+        public void WheelsBreaks (bool isBraking) {
+            float friction;
+            friction = isBraking ? .2f : 0f;
+
+            foreach (SphereCollider wheel in wheels) {
+                wheel.material.dynamicFriction = friction;
+            }
         }
 
         public void ToggleAircraftEntrance() {

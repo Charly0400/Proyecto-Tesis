@@ -1,3 +1,5 @@
+using MikeNspired.XRIStarterKit;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Locomotion;
@@ -6,11 +8,17 @@ public class AircraftVehicle : MonoBehaviour {
     [Header("XR References")]
     public Transform xrOrigin;
     public Transform pilotSeat;
+    private Transform originalParent;
 
     [Header("Settings")]
     public bool desactivarMovimiento = true;
 
-    private bool isPlayerSeated = false;
+    [Header("Toggle Canvas")]
+    public GameObject unseatButtonCanvas;
+    public GameObject seatButtonCanvas;
+    public bool isPlayerSeated = false;
+    public bool isWindowClosed = true;
+
     private LocomotionProvider[] proveedoresMovimiento;
     private CharacterController controladorPersonaje;
 
@@ -21,6 +29,11 @@ public class AircraftVehicle : MonoBehaviour {
             controladorPersonaje = xrOrigin.GetComponentInChildren<CharacterController>();
         }
     }
+
+    private void Start() {
+        ToggleButtonCanva();
+    }
+
     public void SeatPlayer() {
         if (xrOrigin == null || pilotSeat == null) return;
 
@@ -37,13 +50,13 @@ public class AircraftVehicle : MonoBehaviour {
         }
 
         isPlayerSeated = true;
+        ToggleButtonCanva();
         Debug.Log("Jugador anclado al asiento del piloto");
     }
 
     public void UnseatPlayer() {
         if (xrOrigin != null) {
-            // Quitar la relación de parentesco
-            xrOrigin.transform.SetParent(null);
+
 
             // Reactivar movimiento
             if (desactivarMovimiento) {
@@ -51,6 +64,8 @@ public class AircraftVehicle : MonoBehaviour {
             }
 
             isPlayerSeated = false;
+            ToggleButtonCanva();
+            Debug.Log("Jugador no anclado al asiento del piloto");
         }
     }
 
@@ -84,5 +99,53 @@ public class AircraftVehicle : MonoBehaviour {
     public void ToggleSeating() {
         if (isPlayerSeated) UnseatPlayer();
         else SeatPlayer();
+    }
+
+    private void ToggleButtonCanva() {
+        // Asegurarse de que los canvas existen
+        if (unseatButtonCanvas == null || seatButtonCanvas == null) {
+            Debug.LogWarning("Canvas no asignados en el inspector");
+            return;
+        }
+
+        unseatButtonCanvas.SetActive(!isPlayerSeated);
+        seatButtonCanvas.SetActive(isPlayerSeated);
+
+        Debug.Log($"Player seated: {isPlayerSeated}, SeatButton: {!isPlayerSeated}, UnseatButton: {isPlayerSeated}");
+    }
+
+    private void ToggleWindowButton() {
+        if (seatButtonCanvas == null) {
+            Debug.LogWarning("Canvas no asignados en el inspector");
+            return;
+        }
+
+        if (isPlayerSeated)
+            seatButtonCanvas.SetActive(!isWindowClosed);
+
+        Debug.Log($"Window closed: {isWindowClosed}, SeatButton active: {!isWindowClosed}");
+    }
+
+    public void ActiveWindowButton() {
+        isWindowClosed = false;
+        ToggleWindowButton();
+    }
+
+    public void CloseWindowButton() {
+        isWindowClosed = true;
+        ToggleWindowButton();
+    }
+
+    public void OnCloseWindow(float value) {
+        if (!isPlayerSeated)
+            return;
+
+        // Umbral para considerar que el slider llegó al máximo
+        const float MAX_THRESHOLD = 0.98f;
+
+        if (value >= MAX_THRESHOLD)
+            ActiveWindowButton();     // Ventana abierta  activar
+        else
+            CloseWindowButton();      // Ventana no está abierta  apagar
     }
 }

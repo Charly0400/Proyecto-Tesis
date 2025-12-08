@@ -8,7 +8,6 @@ public class AircraftVehicle : MonoBehaviour {
     [Header("XR References")]
     public Transform xrOrigin;
     public Transform pilotSeat;
-    private Transform originalParent;
 
     [Header("Settings")]
     public bool desactivarMovimiento = true;
@@ -56,7 +55,6 @@ public class AircraftVehicle : MonoBehaviour {
 
     public void UnseatPlayer() {
         if (xrOrigin != null) {
-
 
             // Reactivar movimiento
             if (desactivarMovimiento) {

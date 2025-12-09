@@ -283,7 +283,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 07c2795a3fc76224f9e44b842ccf3ff0, type: 2}
+  - {fileID: 2100000, guid: 1c695fcc95ab3d54b8396787971dcf03, type: 2}
   - {fileID: 2100000, guid: 71bdd0673f3fe784680a47cd717aff9a, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
@@ -970,7 +970,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!64 &32921127
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -10861,20 +10861,20 @@ MonoBehaviour:
   m_RotationSpeed: 50
   m_LiftForce: 15
   m_YawSpeed: 30
-  m_MinLiftSpeed: 20
-  m_MaxLiftSpeed: 200
-  xrOrigin: {fileID: 1838069155}
-  pilotSeat: {fileID: 12201638}
+  m_MinLiftSpeed: 40
+  m_MaxLiftSpeed: 120
+  throttleAccelerationRate: 2
+  throttleDecelerationRate: 4
+  useGradualThrottle: 1
+  xrOrigin: {fileID: 0}
+  pilotSeat: {fileID: 0}
   xrSmoothness: 5
   invertPitch: 0
   invertRoll: 0
   invertYaw: 0
   controlSensitivity: 3
-  yawSensitivity: 2
-  wheels:
-  - {fileID: 2104870618}
-  - {fileID: 140346346}
-  - {fileID: 80484844}
+  yawSensitivity: 1
+  wheels: []
   aircraft: {fileID: 0}
 --- !u!54 &977987973
 Rigidbody:
@@ -14229,7 +14229,8 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 2100000, guid: 53af6e6b071f37c439196ed07afdd360, type: 2}
     m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    m_RemovedGameObjects:
+    - {fileID: -7579103995338469470, guid: a4b1f82a920d1004babe84d2bfa028b9, type: 3}
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: a4b1f82a920d1004babe84d2bfa028b9, type: 3}
@@ -16502,6 +16503,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Snap Teleport Anchor
       objectReference: {fileID: 0}
+    - target: {fileID: 268508938848858109, guid: 037ba65d346be2a48ad006b9a9a3873e, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6707876468356395517, guid: 037ba65d346be2a48ad006b9a9a3873e, type: 3}
       propertyPath: m_LocalPosition.x
       value: -27.2322
@@ -16870,7 +16875,7 @@ PrefabInstance:
       objectReference: {fileID: 1489913879}
     - target: {fileID: 269680614838143635, guid: 408216a0bf9da724eb9a4592fd2a528e, type: 3}
       propertyPath: m_VersionIndex
-      value: 4006
+      value: 4012
       objectReference: {fileID: 0}
     - target: {fileID: 543381151449746937, guid: 408216a0bf9da724eb9a4592fd2a528e, type: 3}
       propertyPath: m_Mesh
@@ -16936,6 +16941,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1877143195964286231, guid: 408216a0bf9da724eb9a4592fd2a528e, type: 3}
+      propertyPath: m_Unit
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 1877143195964286231, guid: 408216a0bf9da724eb9a4592fd2a528e, type: 3}
+      propertyPath: m_flightController
+      value: 
+      objectReference: {fileID: 919132148001713275}
     - target: {fileID: 1877143195964286231, guid: 408216a0bf9da724eb9a4592fd2a528e, type: 3}
       propertyPath: m_aircraftRigidbody
       value: 
@@ -23813,7 +23826,7 @@ Transform:
   m_GameObject: {fileID: 1831475918}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -1.6751227, y: -2.2229433, z: -23.114769}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -29036,23 +29049,26 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   throttleLever: {fileID: 85078032}
   flightStick: {fileID: 684322264}
-  m_MaxSpeed: 200
+  m_MaxSpeed: 600
   m_TakeoffSpeed: 30
-  m_RotationSpeed: 100
+  m_RotationSpeed: 50
   m_LiftForce: 15
   m_YawSpeed: 30
-  m_MinLiftSpeed: 20
-  m_MaxLiftSpeed: 120
+  m_MinLiftSpeed: 40
+  m_MaxLiftSpeed: 300
+  throttleAccelerationRate: 44.17
+  throttleDecelerationRate: 20
+  useGradualThrottle: 1
   xrOrigin: {fileID: 1838069155}
   pilotSeat: {fileID: 261833100}
   xrSmoothness: 5
   invertPitch: 0
   invertRoll: 0
   invertYaw: 0
-  controlSensitivity: 20
+  controlSensitivity: 10
   yawSensitivity: 1
   wheels: []
-  aircraft: {fileID: 0}
+  aircraft: {fileID: 919132148001713277}
 --- !u!54 &919132148001713276
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -30783,7 +30799,7 @@ PrefabInstance:
       objectReference: {fileID: 1666499091}
     - target: {fileID: 269680614838143635, guid: 408216a0bf9da724eb9a4592fd2a528e, type: 3}
       propertyPath: m_VersionIndex
-      value: 4021
+      value: 4027
       objectReference: {fileID: 0}
     - target: {fileID: 543381151449746937, guid: 408216a0bf9da724eb9a4592fd2a528e, type: 3}
       propertyPath: m_Mesh
@@ -30827,7 +30843,7 @@ PrefabInstance:
       objectReference: {fileID: 1952679686}
     - target: {fileID: 3335402575598044745, guid: 408216a0bf9da724eb9a4592fd2a528e, type: 3}
       propertyPath: m_VersionIndex
-      value: 6017
+      value: 6023
       objectReference: {fileID: 0}
     - target: {fileID: 3436778660765359188, guid: 408216a0bf9da724eb9a4592fd2a528e, type: 3}
       propertyPath: SingleValueChanged.m_PersistentCalls.m_Calls.Array.data[0].m_Target

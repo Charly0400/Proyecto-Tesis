@@ -90,7 +90,7 @@ namespace Charly.FlightController.Instruments {
 
             // 6. actualizar texto si aplica
             if (m_SpeedText != null) {
-                m_SpeedText.text =(m_Unit == SpeedUnit.MACH) ? speedInUnit.ToString("F2") + " " + GetUnitLabel(m_Unit) : Mathf.RoundToInt(speedInUnit).ToString() + " " + GetUnitLabel(m_Unit);
+                m_SpeedText.text = (m_Unit == SpeedUnit.MACH) ? speedInUnit.ToString("F2") + " " + GetUnitLabel(m_Unit) : Mathf.RoundToInt(speedInUnit).ToString() + " " + GetUnitLabel(m_Unit);
             }
         }
 

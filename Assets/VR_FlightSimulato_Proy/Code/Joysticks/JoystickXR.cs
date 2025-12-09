@@ -154,7 +154,7 @@ namespace MikeNspired.XRIStarterKit {
             Vector3 relativeEuler = relativeRotation.eulerAngles;
 
             // Normalizar ángulos a -180 a 180
-            float yawAngle = relativeEuler.x;
+            float yawAngle = relativeEuler.y;
             if (yawAngle > 180f) yawAngle -= 360f;
 
             // Aplicar zona muerta

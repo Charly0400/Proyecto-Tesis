@@ -28,12 +28,18 @@ namespace MikeNspired.XRIStarterKit {
         float m_MinPosition = -0.5f;
 
         [SerializeField]
+        [Tooltip("Sensitivity multiplier for throttle movement (higher = less physical movement needed)")]
+        [Range(0.1f, 10.0f)]
+        float m_Sensitivity = 2.0f;
+
+        [SerializeField]
         [Tooltip("Events to trigger when the slider is moved")]
         UnityEventFloat m_OnValueChange = new UnityEventFloat();
 
         [SerializeField]
         [Tooltip("Remap sliders min value of 0 to a new value")]
         float m_RemapValueMin = 0f;
+
         [SerializeField]
         [Tooltip("Remap sliders max value of 1 to a new value")]
         float m_RemapValueMax = 1f;
@@ -63,10 +69,17 @@ namespace MikeNspired.XRIStarterKit {
         }
 
         /// <summary>
+        /// Sensitivity multiplier for throttle movement
+        /// </summary>
+        public float Sensitivity {
+            get { return m_Sensitivity; }
+            set { m_Sensitivity = Mathf.Clamp(value, 0.1f, 10.0f); }
+        }
+
+        /// <summary>
         /// Events to trigger when the slider is moved
         /// </summary>
         public UnityEventFloat OnValueChange => m_OnValueChange;
-
 
         void Start() {
             // Si no se asignó manualmente, buscar el parent moving
@@ -146,17 +159,27 @@ namespace MikeNspired.XRIStarterKit {
                 // Usar coordenadas locales relativas al moving parent
                 Vector3 currentLocalPosition = m_MovingParent.InverseTransformPoint(currentPosition);
 
-                // Calcular el desplazamiento desde la posición inicial de grab 
+                // Calcular el desplazamiento desde la posición inicial de grab
                 float displacement = currentLocalPosition.z - m_InitialGrabLocalPosition.z;
 
-                // Convertir desplazamiento a valor del slider
-                float displacementNormalized = displacement / (m_MaxPosition - m_MinPosition);
+                // Aplicar sensibilidad al desplazamiento
+                float sensitivityAdjustedDisplacement = displacement * m_Sensitivity;
+
+                // Convertir desplazamiento ajustado a valor del slider
+                float displacementNormalized = sensitivityAdjustedDisplacement / (m_MaxPosition - m_MinPosition);
                 sliderValue = Mathf.Clamp01(m_InitialGrabValue + displacementNormalized);
             }
             else {
                 // Método original (para objetos estáticos)
                 var localPosition = transform.InverseTransformPoint(currentPosition);
-                sliderValue = Mathf.Clamp01((localPosition.z - m_MinPosition) / (m_MaxPosition - m_MinPosition));
+
+                // Calcular desplazamiento relativo a la posición inicial
+                float displacement = localPosition.z - transform.InverseTransformPoint(m_InitialInteractorTransform.position).z;
+
+                // Aplicar sensibilidad
+                float sensitivityAdjustedDisplacement = displacement * m_Sensitivity;
+
+                sliderValue = Mathf.Clamp01(m_InitialGrabValue + sensitivityAdjustedDisplacement / (m_MaxPosition - m_MinPosition));
             }
 
             SetValue(sliderValue);

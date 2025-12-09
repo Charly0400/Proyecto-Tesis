@@ -289,7 +289,7 @@ namespace Charly.FlightController {
         }
 
         // Método para debug visual
-        void OnGUI() {
+       /* void OnGUI() {
             GUILayout.Label($"=== AVIÓN DEBUG ===");
             GUILayout.Label($"Throttle Posición: {m_ThrottleInput:F2}");
             GUILayout.Label($"Throttle Actual: {m_CurrentThrottle:F2}");
@@ -298,6 +298,6 @@ namespace Charly.FlightController {
             GUILayout.Label($"Velocidad Real: {CurrentSpeedMps:F1} m/s");
             GUILayout.Label($"Factor Rotación: {CalculateStableSpeedFactor(m_CurrentVelocity):F2}");
             GUILayout.Label($"Motor: {(m_EngineOn ? "ENCENDIDO" : "APAGADO")}");
-        }
+        }*/
     }
 }

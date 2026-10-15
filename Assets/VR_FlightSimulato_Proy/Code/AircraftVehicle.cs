@@ -20,10 +20,12 @@ public class AircraftVehicle : MonoBehaviour {
 
     private LocomotionProvider[] proveedoresMovimiento;
     private CharacterController controladorPersonaje;
+    private Transform padreOriginal;
 
     private void Awake() {
         if (xrOrigin != null) {
-            // Obtener todos los componentes de locomociÛn
+            padreOriginal = xrOrigin.parent;
+            // Obtener todos los componentes de locomociÔøΩn
             proveedoresMovimiento = xrOrigin.GetComponentsInChildren<LocomotionProvider>();
             controladorPersonaje = xrOrigin.GetComponentInChildren<CharacterController>();
         }
@@ -48,6 +50,10 @@ public class AircraftVehicle : MonoBehaviour {
             DesactivarMovimientoXR();
         }
 
+        // El rig XR ahora es hijo del avi√≥n: evitar que sus colliders choquen con el avi√≥n
+        var physics = GetComponent<Charly.FlightController.AircraftPhysics>();
+        if (physics != null) physics.RefreshIgnoredCollisions();
+
         isPlayerSeated = true;
         ToggleButtonCanva();
         Debug.Log("Jugador anclado al asiento del piloto");
@@ -55,6 +61,15 @@ public class AircraftVehicle : MonoBehaviour {
 
     public void UnseatPlayer() {
         if (xrOrigin != null) {
+            // Soltar el rig del avi√≥n y dejarlo derecho: conserva solo hacia d√≥nde mira (yaw),
+            // as√≠ no sale de lado o de cabeza si el avi√≥n est√° inclinado o volcado
+            xrOrigin.SetParent(padreOriginal, true);
+            Vector3 adelante = Vector3.ProjectOnPlane(xrOrigin.forward, Vector3.up);
+            if (adelante.sqrMagnitude < 0.01f)
+                adelante = Vector3.ProjectOnPlane(transform.forward, Vector3.up);
+            if (adelante.sqrMagnitude < 0.01f)
+                adelante = Vector3.forward;
+            xrOrigin.rotation = Quaternion.LookRotation(adelante.normalized, Vector3.up);
 
             // Reactivar movimiento
             if (desactivarMovimiento) {
@@ -68,7 +83,7 @@ public class AircraftVehicle : MonoBehaviour {
     }
 
     private void DesactivarMovimientoXR() {
-        // Desactivar todos los proveedores de locomociÛn
+        // Desactivar todos los proveedores de locomociÔøΩn
         foreach (var proveedor in proveedoresMovimiento) {
             if (proveedor != null)
                 proveedor.enabled = false;
@@ -81,7 +96,7 @@ public class AircraftVehicle : MonoBehaviour {
     }
 
     private void ActivarMovimientoXR() {
-        // Reactivar todos los proveedores de locomociÛn
+        // Reactivar todos los proveedores de locomociÔøΩn
         foreach (var proveedor in proveedoresMovimiento) {
             if (proveedor != null)
                 proveedor.enabled = true;
@@ -138,12 +153,12 @@ public class AircraftVehicle : MonoBehaviour {
         if (!isPlayerSeated)
             return;
 
-        // Umbral para considerar que el slider llegÛ al m·ximo
+        // Umbral para considerar que el slider llegÔøΩ al mÔøΩximo
         const float MAX_THRESHOLD = 0.98f;
 
         if (value >= MAX_THRESHOLD)
             ActiveWindowButton();     // Ventana abierta  activar
         else
-            CloseWindowButton();      // Ventana no est· abierta  apagar
+            CloseWindowButton();      // Ventana no estÔøΩ abierta  apagar
     }
 }

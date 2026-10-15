@@ -73,6 +73,8 @@ namespace Charly.FlightController {
         private float m_YawInput;
         private bool m_EngineOn;
 
+        private JoystickXRV2 m_FlightStickV2;
+
         public AircraftVehicle aircraft;
         private bool isInAircraft = false;
 
@@ -117,6 +119,12 @@ namespace Charly.FlightController {
                 flightStick.OnJoystickMove.AddListener(OnJoystickInput);
                 flightStick.OnYawInput.AddListener(OnYawInput);
             }
+
+            // El joystick en uso es JoystickXRV2: su pitch/roll llega por el evento del Inspector (SetDirectionInput),
+            // pero el giro de muñeca (cola / yaw) no estaba conectado. Se conecta aquí por código.
+            m_FlightStickV2 = GetComponentInChildren<JoystickXRV2>();
+            if (m_FlightStickV2 != null)
+                m_FlightStickV2.OnYawInput.AddListener(OnYawInput);
 
             Debug.Log("Controles VR configurados correctamente");
         }
@@ -230,6 +238,9 @@ namespace Charly.FlightController {
                 flightStick.OnJoystickMove.RemoveListener(OnJoystickInput);
                 flightStick.OnYawInput.RemoveListener(OnYawInput);
             }
+
+            if (m_FlightStickV2 != null)
+                m_FlightStickV2.OnYawInput.RemoveListener(OnYawInput);
         }
     }
 }

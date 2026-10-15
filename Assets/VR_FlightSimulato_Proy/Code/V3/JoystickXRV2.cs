@@ -18,14 +18,14 @@ namespace MikeNspired.XRIStarterKit {
         [SerializeField] private bool returnToCenter = true;
         [SerializeField] private float deadzone = 0.05f;
 
-        [Header("Yaw (Rotación) Settings")]
-        [SerializeField] private float yawSensitivity = 2.0f; // Sensibilidad para la rotación
+        [Header("Yaw (Rotaciï¿½n) Settings")]
+        [SerializeField] private float yawSensitivity = 2.0f; // Sensibilidad para la rotaciï¿½n
         [SerializeField] private float yawDeadzone = 5f; // Zona muerta en grados
         [SerializeField] private bool enableYawControl = true;
 
         [Header("Events")]
         public UnityEventVector2 OnJoystickMove;
-        public UnityEventFloat OnYawInput; // Evento para la guiñada
+        public UnityEventFloat OnYawInput; // Evento para la guiï¿½ada
 
         [Header("Position Source (Throttle-style)")]
         [SerializeField] private bool m_UseControllerForPosition = true;
@@ -39,7 +39,7 @@ namespace MikeNspired.XRIStarterKit {
         private Vector2 currentInput;
         private float currentYawInput;
 
-        // Control de rotación (yaw)
+        // Control de rotaciï¿½n (yaw)
         private Quaternion initialControllerRotation;
         private Transform controllerTransform;
 
@@ -62,7 +62,7 @@ namespace MikeNspired.XRIStarterKit {
                 initialHandleRotation = handle.localRotation;
             }
             else {
-                Debug.LogWarning($"{name}: 'handle' no está asignado, el joystick no tendrá representación visual.", this);
+                Debug.LogWarning($"{name}: 'handle' no estï¿½ asignado, el joystick no tendrï¿½ representaciï¿½n visual.", this);
             }
         }
 
@@ -84,8 +84,10 @@ namespace MikeNspired.XRIStarterKit {
             else
                 initialGrabLocalPosition = transform.InverseTransformPoint(grabWorldPosition);
 
-            // Guardar la rotación inicial del controlador
-            initialControllerRotation = controllerTransform.rotation;
+            // Guardar la rotaciï¿½n inicial del controlador RELATIVA al aviï¿½n
+            // (si fuera en mundo, cualquier giro del aviï¿½n se leerï¿½a como giro de muï¿½eca)
+            Transform frame = movingParent != null ? movingParent : transform;
+            initialControllerRotation = Quaternion.Inverse(frame.rotation) * controllerTransform.rotation;
 
             StopAllCoroutines();
         }
@@ -132,7 +134,10 @@ namespace MikeNspired.XRIStarterKit {
                 ? movingParent.InverseTransformPoint(currentPosition)
                 : transform.InverseTransformPoint(currentPosition);
 
-            Vector3 displacement = currentLocalPosition - initialGrabLocalPosition;
+            // Pasar a METROS reales: el aviÃ³n estÃ¡ escalado (x6), y en espacio local la mano
+            // tenÃ­a que moverse 6 veces mÃ¡s para el mismo input. AsÃ­ 'sensitivity' = input por metro.
+            Transform frame = movingParent != null ? movingParent : transform;
+            Vector3 displacement = (currentLocalPosition - initialGrabLocalPosition) * frame.lossyScale.x;
 
             Vector2 rawInput = new Vector2(
                 Mathf.Clamp(displacement.x * sensitivity, -1f, 1f),
@@ -152,7 +157,7 @@ namespace MikeNspired.XRIStarterKit {
         /// Calcula el yaw proyectando el forward del controlador sobre el plano
         /// horizontal (XZ) del moving parent y usando SignedAngle. Esto evita la
         /// discontinuidad/inestabilidad de leer directamente eulerAngles.y de un
-        /// quaternion relativo, que puede saltar si el controlador también rota
+        /// quaternion relativo, que puede saltar si el controlador tambiï¿½n rota
         /// en otros ejes (pitch/roll) al mismo tiempo.
         /// </summary>
         void UpdateYawInput() {
@@ -160,23 +165,19 @@ namespace MikeNspired.XRIStarterKit {
 
             Transform referenceFrame = movingParent != null ? movingParent : transform;
 
-            // Forward inicial y actual del controlador, proyectados sobre el
-            // plano horizontal del frame de referencia.
-            Vector3 initialForward = initialControllerRotation * Vector3.forward;
-            Vector3 currentForward = controllerTransform.rotation * Vector3.forward;
+            // Rotaciï¿½n de la mano desde que agarrï¿½ la palanca, en ejes del aviï¿½n
+            Quaternion currentLocal = Quaternion.Inverse(referenceFrame.rotation) * controllerTransform.rotation;
+            Quaternion delta = currentLocal * Quaternion.Inverse(initialControllerRotation);
 
-            Vector3 upAxis = referenceFrame.up;
+            // Descomposiciï¿½n swing-twist: nos quedamos SOLO con el giro alrededor del eje vertical
+            // del aviï¿½n (mano girando izquierda/derecha). Inclinar la mano arriba/abajo o de lado se ignora.
+            Vector3 axis = Vector3.up;
+            Vector3 projected = Vector3.Project(new Vector3(delta.x, delta.y, delta.z), axis);
 
-            Vector3 initialFlat = Vector3.ProjectOnPlane(initialForward, upAxis).normalized;
-            Vector3 currentFlat = Vector3.ProjectOnPlane(currentForward, upAxis).normalized;
-
-            // Si alguno de los vectores queda degenerado (controlador apuntando
-            // casi paralelo al eje up), evitamos un ángulo indefinido.
-            if (initialFlat.sqrMagnitude < 0.0001f || currentFlat.sqrMagnitude < 0.0001f) {
-                return;
-            }
-
-            float yawAngle = Vector3.SignedAngle(initialFlat, currentFlat, upAxis);
+            // ï¿½ngulo con signo alrededor del eje (derecha = positivo), en -180..180
+            float yawAngle = 2f * Mathf.Atan2(Vector3.Dot(projected, axis), delta.w) * Mathf.Rad2Deg;
+            if (yawAngle > 180f) yawAngle -= 360f;
+            else if (yawAngle < -180f) yawAngle += 360f;
 
             if (Mathf.Abs(yawAngle) < yawDeadzone) {
                 currentYawInput = 0f;

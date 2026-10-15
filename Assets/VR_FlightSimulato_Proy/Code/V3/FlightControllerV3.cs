@@ -1,29 +1,31 @@
-using MikeNspired.XRIStarterKit;
+﻿using MikeNspired.XRIStarterKit;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace Charly.FlightController {
+    /// <summary>
+    /// CAPA DE INPUT del avión.
+    /// Recibe la palanca (ThrottleXR) y el joystick (JoystickXR), suaviza el throttle,
+    /// controla motor on/off, asiento y frenos, y EXPONE valores normalizados.
+    /// NO aplica física: de eso se encarga AircraftPhysics (mismo GameObject).
+    /// </summary>
     [RequireComponent(typeof(Rigidbody))]
     public class FlightControllerV3 : MonoBehaviour {
         [Header("VR Controls")]
-        [SerializeField] private ThrottleXRV2 throttleLever;
-        [SerializeField] private JoystickXRV2 flightStick;
+        [SerializeField] private ThrottleXR throttleLever;
+        [SerializeField] private JoystickXR flightStick;
 
-        [Header("Flight Settings")]
-        public float m_MaxSpeed = 200f;
-        public float m_TakeoffSpeed = 60f;
-        public float m_RotationSpeed = 50f;
-        public float m_LiftForce = 15f;
-        public float m_YawSpeed = 30f;
+        [Header("Physics Reference")]
+        [Tooltip("Si se deja vacío se busca en este mismo GameObject")]
+        [SerializeField] private AircraftPhysics aircraftPhysics;
 
-        [Header("Aerodynamics")]
-        public float m_MinLiftSpeed = 40f;
-        public float m_MaxLiftSpeed = 120f;
-
-        [Header("Throttle Acceleration")]
-        public float throttleAccelerationRate = 1.0f; // M�s lento para mejor control
-        public float throttleDecelerationRate = 2.0f; // Desaceleraci�n m�s r�pida
-        public bool useGradualThrottle = true; // Opci�n para activar/desactivar
+        [Header("Throttle (respuesta del motor)")]
+        [Tooltip("Qué tan rápido SUBE el throttle real (unidades de throttle por segundo)")]
+        public float throttleAccelerationRate = 1.0f;
+        [Tooltip("Qué tan rápido BAJA el throttle real (unidades de throttle por segundo)")]
+        public float throttleDecelerationRate = 2.0f;
+        [Tooltip("Si está apagado, el throttle real sigue a la palanca al instante")]
+        public bool useGradualThrottle = true;
 
         [Header("XR Integration")]
         public Transform xrOrigin;
@@ -43,21 +45,33 @@ namespace Charly.FlightController {
         [Header("Debug")]
         [SerializeField] private bool enableDebugLogging = false;
 
+        // ───────── SALIDAS NORMALIZADAS (las lee AircraftPhysics) ─────────
+        /// <summary>Throttle REAL (ya suavizado) 0..1. Es 0 si el motor está apagado.</summary>
+        public float Throttle => m_CurrentThrottle;
+        /// <summary>Posición de la palanca 0..1 (lo que pide el piloto).</summary>
+        public float ThrottleTarget => m_ThrottleInput;
+        /// <summary>Joystick adelante/atrás -1..1 (adelante = positivo = morro abajo).</summary>
+        public float Pitch => m_DirectionInput.y;
+        /// <summary>Joystick izquierda/derecha -1..1 (derecha = positivo = alabeo a la derecha).</summary>
+        public float Roll => m_DirectionInput.x;
+        /// <summary>Giro de muñeca -1..1 (derecha = positivo).</summary>
+        public float Yaw => m_YawInput;
+        public bool EngineOn => m_EngineOn;
+
+        // ───────── Compatibilidad con UI / otros scripts ─────────
+        /// <summary>Velocidad hacia adelante en m/s (componente sobre transform.forward).</summary>
         public float CurrentSpeed { get; private set; }
+        /// <summary>Velocidad total del Rigidbody en m/s.</summary>
         public float CurrentSpeedMps { get; private set; }
         public float CurrentThrottleTarget { get; private set; }
         public float CurrentThrottleActual { get; private set; }
 
         private Rigidbody m_Rigidbody;
-        private float m_ThrottleInput; // Target del throttle (posici�n del lever)
-        private float m_CurrentThrottle; // Throttle actual (gradual, tras rampa de aceleraci�n)
+        private float m_ThrottleInput;    // posición de la palanca
+        private float m_CurrentThrottle;  // throttle real (suavizado)
         private Vector2 m_DirectionInput;
         private float m_YawInput;
         private bool m_EngineOn;
-
-        // Velocidad "forward" actual, ya suavizada. Un �nico punto de suavizado.
-        private float m_CurrentVelocity = 0f;
-        private float m_TargetVelocity = 0f;
 
         public AircraftVehicle aircraft;
         private bool isInAircraft = false;
@@ -65,7 +79,11 @@ namespace Charly.FlightController {
         #region Unity Methods
         private void Awake() {
             m_Rigidbody = GetComponent<Rigidbody>();
-            SetupRigidbody();
+            if (aircraftPhysics == null)
+                aircraftPhysics = GetComponent<AircraftPhysics>();
+
+            if (aircraftPhysics == null)
+                Debug.LogWarning("FlightController: no hay AircraftPhysics en este GameObject. El avión no tendrá física de vuelo.", this);
         }
 
         private void Start() {
@@ -73,41 +91,21 @@ namespace Charly.FlightController {
         }
 
         private void Update() {
+            UpdateThrottleGradual();
             UpdateSpeedValues();
 
             if (enableDebugLogging) {
-                Debug.Log($"Throttle Target: {m_ThrottleInput:F2}, Throttle Actual: {m_CurrentThrottle:F2}, Velocity: {m_CurrentVelocity:F1}");
+                Debug.Log($"Throttle Target: {m_ThrottleInput:F2}, Throttle Real: {m_CurrentThrottle:F2}, Vel: {CurrentSpeed:F1} m/s");
             }
-        }
-
-        private void FixedUpdate() {
-            if (!m_EngineOn) {
-                // Sin motor: dejamos que la velocidad forward decaiga, la f�sica
-                // (gravedad) se encarga del resto.
-                m_CurrentVelocity = Mathf.Lerp(m_CurrentVelocity, 0f, Time.fixedDeltaTime * 5f);
-                m_TargetVelocity = 0f;
-                return;
-            }
-
-            UpdateThrottleGradual();
-            CalculateTargetVelocity();
-            MovePlane();
-            ApplyLift();
-            RotatePlane();
         }
         #endregion
 
         private void UpdateSpeedValues() {
-            CurrentSpeedMps = m_Rigidbody.linearVelocity.magnitude;
-            CurrentSpeed = m_CurrentVelocity;
+            Vector3 v = m_Rigidbody.linearVelocity;
+            CurrentSpeedMps = v.magnitude;
+            CurrentSpeed = Vector3.Dot(v, transform.forward);
             CurrentThrottleTarget = m_ThrottleInput;
             CurrentThrottleActual = m_CurrentThrottle;
-        }
-
-        private void SetupRigidbody() {
-            m_Rigidbody.linearDamping = 0.2f;
-            m_Rigidbody.angularDamping = 1.5f;
-            m_Rigidbody.useGravity = true;
         }
 
         private void SetUpLeverAndJoystick() {
@@ -125,29 +123,21 @@ namespace Charly.FlightController {
 
         private void OnThrottleInput(float input) {
             m_ThrottleInput = Mathf.Clamp01(input);
-            // Nota: m_TargetVelocity se recalcula cada FixedUpdate en
-            // CalculateTargetVelocity(), no hace falta setearlo aqu�.
         }
 
+        /// <summary>
+        /// Único punto de suavizado del throttle. Con el motor apagado el objetivo es 0.
+        /// </summary>
         private void UpdateThrottleGradual() {
+            float target = m_EngineOn ? m_ThrottleInput : 0f;
+
             if (!useGradualThrottle) {
-                m_CurrentThrottle = m_ThrottleInput;
+                m_CurrentThrottle = target;
                 return;
             }
 
-            float accelerationRate = (m_ThrottleInput > m_CurrentThrottle) ?
-                throttleAccelerationRate : throttleDecelerationRate;
-
-            m_CurrentThrottle = Mathf.MoveTowards(
-                m_CurrentThrottle,
-                m_ThrottleInput,
-                accelerationRate * Time.fixedDeltaTime
-            );
-        }
-
-        private void CalculateTargetVelocity() {
-            float throttleValue = useGradualThrottle ? m_CurrentThrottle : m_ThrottleInput;
-            m_TargetVelocity = throttleValue * m_MaxSpeed;
+            float rate = (target > m_CurrentThrottle) ? throttleAccelerationRate : throttleDecelerationRate;
+            m_CurrentThrottle = Mathf.MoveTowards(m_CurrentThrottle, target, rate * Time.deltaTime);
         }
 
         private void OnJoystickInput(Vector2 input) {
@@ -163,62 +153,6 @@ namespace Charly.FlightController {
             input *= yawSensitivity;
             if (invertYaw) input = -input;
             m_YawInput = Mathf.Clamp(input, -1f, 1f);
-        }
-
-        /// <summary>
-        /// �nico punto de suavizado: la rampa del throttle (UpdateThrottleGradual)
-        /// ya define qu� tan r�pido cambia la velocidad objetivo, as� que aqu�
-        /// simplemente igualamos la velocidad actual a la objetivo, evitando
-        /// una segunda capa de "MoveTowards" que sumaba retraso innecesario.
-        /// </summary>
-        private void MovePlane() {
-            m_CurrentVelocity = m_TargetVelocity;
-
-            // Aplicamos la velocidad directamente al Rigidbody en vez de usar
-            // MovePosition, para que la f�sica (gravedad, colisiones) sea
-            // consistente con el movimiento. Conservamos la componente vertical
-            // actual (gravedad/lift) y reemplazamos solo el empuje hacia adelante.
-            Vector3 currentVelocity = m_Rigidbody.linearVelocity;
-            Vector3 verticalComponent = Vector3.Project(currentVelocity, transform.up);
-            Vector3 forwardVelocity = transform.forward * m_CurrentVelocity;
-
-            m_Rigidbody.linearVelocity = forwardVelocity + verticalComponent;
-        }
-
-        private void ApplyLift() {
-            float currentSpeed = m_CurrentVelocity;
-
-            if (currentSpeed > m_MinLiftSpeed) {
-                float liftFactor = Mathf.Clamp01((currentSpeed - m_MinLiftSpeed) / (m_MaxLiftSpeed - m_MinLiftSpeed));
-                Vector3 liftForce = transform.up * m_LiftForce * liftFactor * Time.fixedDeltaTime;
-                m_Rigidbody.AddForce(liftForce, ForceMode.VelocityChange);
-            }
-        }
-
-        private void RotatePlane() {
-            float currentSpeed = m_CurrentVelocity;
-
-            if (currentSpeed < m_TakeoffSpeed * 0.5f) return;
-
-            float speedFactor = CalculateStableSpeedFactor(currentSpeed);
-
-            float pitch = Mathf.Clamp(m_DirectionInput.y * m_RotationSpeed * speedFactor, -90f, 90f) * Time.fixedDeltaTime;
-            float roll = Mathf.Clamp(-m_DirectionInput.x * m_RotationSpeed * speedFactor, -90f, 90f) * Time.fixedDeltaTime;
-            float yaw = Mathf.Clamp(m_YawInput * m_YawSpeed * speedFactor, -45f, 45f) * Time.fixedDeltaTime;
-
-            m_Rigidbody.MoveRotation(m_Rigidbody.rotation * Quaternion.Euler(pitch, yaw, roll));
-        }
-
-        private float CalculateStableSpeedFactor(float currentSpeed) {
-            if (currentSpeed < m_TakeoffSpeed) {
-                return Mathf.Clamp01(currentSpeed / m_TakeoffSpeed) * 0.5f;
-            }
-            else if (currentSpeed < m_MaxSpeed * 0.7f) {
-                return 0.7f;
-            }
-            else {
-                return 1.0f;
-            }
         }
 
         #region ThrottleAndLeverInputs
@@ -247,11 +181,8 @@ namespace Charly.FlightController {
             m_EngineOn = false;
             m_ThrottleInput = 0f;
             m_CurrentThrottle = 0f;
-            m_TargetVelocity = 0f;
 
-            // Sincronizamos la palanca f�sica con el estado interno para que,
-            // al volver a agarrarla, no arranque con un valor "fantasma"
-            // basado en la posici�n f�sica donde qued�.
+            // Sincroniza la palanca física con el estado interno
             if (throttleLever != null) {
                 throttleLever.Value = 0f;
             }
@@ -265,17 +196,19 @@ namespace Charly.FlightController {
         }
 
         public void WheelsBreaks(bool isBraking) {
-            float friction;
-            friction = isBraking ? .2f : 0f;
+            if (wheels == null) return;
+
+            float friction = isBraking ? .2f : 0f;
 
             foreach (SphereCollider wheel in wheels) {
-                wheel.material.dynamicFriction = friction;
+                if (wheel != null)
+                    wheel.material.dynamicFriction = friction;
             }
         }
 
         public void ToggleAircraftEntrance() {
             if (aircraft == null) {
-                Debug.LogWarning("FlightController: 'aircraft' no est� asignado.");
+                Debug.LogWarning("FlightController: 'aircraft' no está asignado.");
                 return;
             }
 

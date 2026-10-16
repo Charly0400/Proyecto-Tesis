@@ -22,7 +22,11 @@ public class GeneradorOrillasTerrain : EditorWindow
     float alturaColinas = 120f;            // m
     float alturaMontanas = 1100f;          // m
     float inicioMontanas = 900f;           // m desde el borde del mapa
-    float distanciaMezcla = 450f;          // m en los que se pasa del borde a las colinas
+    float distanciaMezcla = 600f;          // m en los que se suman las colinas sobre el relieve espejo
+    float distanciaEspejo = 2500f;         // m en los que el relieve del mapa se refleja antes de desvanecerse
+    bool igualarResolucion = true;         // anillo 1 con la misma resolución que el mapa (colores y unión iguales)
+    bool usarPintor = true;                // pintar con el Procedural Terrain Painter de la escena
+    int resAnillo1Actual;
     float escalaColinas = 1200f;           // longitud de onda aprox. (m)
     float escalaMontanas = 2600f;
     int semilla = 1234;
@@ -37,7 +41,9 @@ public class GeneradorOrillasTerrain : EditorWindow
         EditorGUILayout.HelpBox("Genera terrenos decorativos (sin colisión) alrededor de los Terrain existentes de la escena abierta.", MessageType.Info);
         EditorGUILayout.LabelField("Tamaño", EditorStyles.boldLabel);
         anillos = EditorGUILayout.IntSlider("Anillos (terrenos por lado)", anillos, 1, 6);
-        resolucionAnillo1 = EditorGUILayout.IntPopup("Heightmap anillo 1", resolucionAnillo1, new[] { "129", "257", "513" }, new[] { 129, 257, 513 });
+        igualarResolucion = EditorGUILayout.Toggle("Anillo 1 = resolución del mapa", igualarResolucion);
+        using (new EditorGUI.DisabledScope(igualarResolucion))
+            resolucionAnillo1 = EditorGUILayout.IntPopup("Heightmap anillo 1", resolucionAnillo1, new[] { "129", "257", "513" }, new[] { 129, 257, 513 });
         resolucionResto = EditorGUILayout.IntPopup("Heightmap anillos externos", resolucionResto, new[] { "65", "129", "257" }, new[] { 65, 129, 257 });
         resolucionAlphamap = EditorGUILayout.IntPopup("Resolución de pintura", resolucionAlphamap, new[] { "64", "128", "256" }, new[] { 64, 128, 256 });
 
@@ -46,12 +52,15 @@ public class GeneradorOrillasTerrain : EditorWindow
         alturaMontanas = EditorGUILayout.FloatField("Altura montañas (m)", alturaMontanas);
         inicioMontanas = EditorGUILayout.FloatField("Montañas empiezan a (m)", inicioMontanas);
         distanciaMezcla = EditorGUILayout.FloatField("Distancia de mezcla (m)", distanciaMezcla);
+        distanciaEspejo = EditorGUILayout.FloatField("Distancia de espejo (m)", distanciaEspejo);
         escalaColinas = EditorGUILayout.FloatField("Escala colinas (m)", escalaColinas);
         escalaMontanas = EditorGUILayout.FloatField("Escala montañas (m)", escalaMontanas);
         semilla = EditorGUILayout.IntField("Semilla", semilla);
 
         EditorGUILayout.LabelField("Apariencia", EditorStyles.boldLabel);
-        capaRoca = (TerrainLayer)EditorGUILayout.ObjectField("Capa roca (opcional)", capaRoca, typeof(TerrainLayer), false);
+        usarPintor = EditorGUILayout.Toggle("Usar Terrain Painter del mapa", usarPintor);
+        using (new EditorGUI.DisabledScope(usarPintor))
+            capaRoca = (TerrainLayer)EditorGUILayout.ObjectField("Capa roca (sin pintor)", capaRoca, typeof(TerrainLayer), false);
         pixelError = EditorGUILayout.Slider("Pixel Error", pixelError, 1f, 50f);
 
         EditorGUILayout.Space();
@@ -63,6 +72,7 @@ public class GeneradorOrillasTerrain : EditorWindow
     Dictionary<Vector2Int, Terrain> interior;
     Vector3 tam; float minX, maxX, minZ, maxZ; int nx, nz;
     float[][] perfil = new float[4][];          // 0 izq, 1 der, 2 abajo, 3 arriba (alturas cada 1 m)
+    float[][] perfilSuave = new float[4][];     // mismo perfil muy suavizado (relieve lejano, sin rayas)
     float[][][] perfilPintura = new float[4][][]; // pesos por capa cada pasoPintura m
     const float pasoPintura = 4f;
     float promedioBorde;
@@ -112,11 +122,20 @@ public class GeneradorOrillasTerrain : EditorWindow
         try
         {
             EditorUtility.DisplayProgressBar("Orillas", "Leyendo bordes del mapa…", 0f);
+            var pintor = usarPintor ? Object.FindFirstObjectByType<sc.terrain.proceduralpainter.TerrainPainter>() : null;
+            bool conPintor = pintor != null && pintor.layerSettings != null && pintor.layerSettings.Count > 0;
+            if (usarPintor && !conPintor) Debug.LogWarning("[Orillas] No encontré un Terrain Painter configurado; uso la pintura del borde.");
+
+            resAnillo1Actual = igualarResolucion ? referencia.terrainData.heightmapResolution : resolucionAnillo1;
             ConstruirCapas(internos);
-            ConstruirPerfiles(resolucionAnillo1);
+            ConstruirPerfiles(resAnillo1Actual);
 
             float alturaMax = 0f; foreach (var pr in perfil) foreach (var h in pr) alturaMax = Mathf.Max(alturaMax, h);
-            float alturaTerreno = Mathf.Max(referencia.terrainData.size.y, alturaMax + alturaColinas + alturaMontanas + 50f);
+            float necesaria = alturaMax + alturaColinas + alturaMontanas + 50f;
+            // Misma altura que el mapa para que el pintor interprete igual alturas y pendientes.
+            float alturaTerreno = Mathf.Max(referencia.terrainData.size.y, necesaria);
+            if (conPintor && necesaria > referencia.terrainData.size.y)
+                Debug.LogWarning($"[Orillas] Las montañas superan la altura del mapa ({referencia.terrainData.size.y} m); los colores pueden variar un poco.");
 
             CrearCarpeta(CarpetaAssets);
             var padre = new GameObject(NombrePadre);
@@ -127,6 +146,7 @@ public class GeneradorOrillasTerrain : EditorWindow
                 for (int gz = -anillos; gz < nz + anillos; gz++)
                     if (gx < 0 || gz < 0 || gx >= nx || gz >= nz) lista.Add(new Vector2Int(gx, gz));
 
+            var nuevos = new List<Terrain>();
             AssetDatabase.StartAssetEditing();
             try
             {
@@ -135,10 +155,12 @@ public class GeneradorOrillasTerrain : EditorWindow
                     var g = lista[i];
                     if (EditorUtility.DisplayCancelableProgressBar("Orillas", $"Terreno {i + 1} de {lista.Count}", (float)i / lista.Count)) break;
                     int anillo = Mathf.Max(Mathf.Max(-g.x, g.x - (nx - 1)), Mathf.Max(-g.y, g.y - (nz - 1)));
-                    CrearTile(g, anillo == 1 ? resolucionAnillo1 : resolucionResto, alturaTerreno, referencia, padre.transform);
+                    nuevos.Add(CrearTile(g, anillo == 1 ? resAnillo1Actual : resolucionResto, alturaTerreno, referencia, padre.transform, !conPintor));
                 }
             }
             finally { AssetDatabase.StopAssetEditing(); }
+
+            if (conPintor) PintarConPintor(pintor, nuevos);
 
             AssetDatabase.SaveAssets();
             Terrain.SetConnectivityDirty();
@@ -195,6 +217,17 @@ public class GeneradorOrillasTerrain : EditorWindow
                 crudo[i] = enX ? AlturaInterior(c, lado == 2 ? minZ : maxZ) : AlturaInterior(lado == 0 ? minX : maxX, c);
                 suma += crudo[i]; cuenta++;
             }
+            // Promedio móvil amplio (±1500 m) para el relieve lejano.
+            var acum = new double[n + 1];
+            for (int i = 0; i < n; i++) acum[i + 1] = acum[i] + crudo[i];
+            var suave = new float[n];
+            const int radio = 1500;
+            for (int i = 0; i < n; i++)
+            {
+                int a = Mathf.Max(0, i - radio), b = Mathf.Min(n - 1, i + radio);
+                suave[i] = (float)((acum[b + 1] - acum[a]) / (b - a + 1));
+            }
+            perfilSuave[lado] = suave;
             var pr = new float[n];
             for (int i = 0; i < n; i++)
             {
@@ -291,11 +324,24 @@ public class GeneradorOrillasTerrain : EditorWindow
         return s / norm;
     }
 
+    // Altura del mapa en el punto reflejado como espejo respecto al borde.
+    float AlturaEspejo(float x, float z)
+    {
+        float rx = x < minX ? 2f * minX - x : (x > maxX ? 2f * maxX - x : x);
+        float rz = z < minZ ? 2f * minZ - z : (z > maxZ ? 2f * maxZ - z : z);
+        return AlturaInterior(Mathf.Clamp(rx, minX, maxX), Mathf.Clamp(rz, minZ, maxZ));
+    }
+
     float Altura(float x, float z, out float d, out float baseH)
     {
-        float b = Borde(x, z, out d, out _, out _);
+        float b = Borde(x, z, out d, out int lado, out float coord);
+        var ps = perfilSuave[lado];
+        float lejano = ps[Mathf.Clamp(Mathf.RoundToInt(coord), 0, ps.Length - 1)];
+        float desvanecer = Suave(d / distanciaEspejo);
+        float espaciado = tam.x / (resAnillo1Actual - 1);
+        float cercano = desvanecer >= 1f ? lejano : (d < espaciado * 0.5f ? b : AlturaEspejo(x, z));
+        baseH = Mathf.Lerp(cercano, lejano, desvanecer);
         float mezcla = Suave(d / distanciaMezcla);
-        baseH = Mathf.Lerp(b, promedioBorde, Suave(d / (distanciaMezcla * 4f)));
         float maxD = anillos * tam.x * 0.85f;
         float mascaraMont = Suave((d - inicioMontanas) / Mathf.Max(1f, maxD - inicioMontanas));
         float relieve = Colinas(x, z) * alturaColinas + Montanas(x, z) * alturaMontanas * mascaraMont;
@@ -303,7 +349,32 @@ public class GeneradorOrillasTerrain : EditorWindow
     }
 
     // ---------- Creación de cada terreno ----------
-    void CrearTile(Vector2Int g, int res, float alturaTerreno, Terrain referencia, Transform padre)
+    // Pinta las orillas con una copia temporal del Terrain Painter del mapa (mismas reglas y mismos límites),
+    // sin repintar ni modificar los terrenos originales.
+    static void PintarConPintor(sc.terrain.proceduralpainter.TerrainPainter original, List<Terrain> nuevos)
+    {
+        EditorUtility.DisplayProgressBar("Orillas", "Pintando con el Terrain Painter…", 1f);
+        var temporal = new GameObject("_PintorTemporalOrillas");
+        temporal.hideFlags = HideFlags.HideAndDontSave;
+        var copia = temporal.AddComponent<sc.terrain.proceduralpainter.TerrainPainter>();
+        try
+        {
+            EditorUtility.CopySerialized(original, copia);
+            copia.terrains = nuevos.ToArray();
+            copia.bounds = original.bounds;               // mismos límites => mismas alturas y ruido que el mapa
+            copia.autoRepaint = false;
+            copia.terrainListeners = new List<sc.terrain.proceduralpainter.TerrainChangeListener>();
+            copia.SetTerrainLayers();
+            copia.RepaintAll(true);
+        }
+        finally
+        {
+            Object.DestroyImmediate(temporal);
+            sc.terrain.proceduralpainter.TerrainPainter.Current = original;
+        }
+    }
+
+    Terrain CrearTile(Vector2Int g, int res, float alturaTerreno, Terrain referencia, Transform padre, bool pintarBorde)
     {
         var pos = new Vector3(minX + g.x * tam.x, 0f, minZ + g.y * tam.z);
         var td = new TerrainData();
@@ -323,7 +394,7 @@ public class GeneradorOrillasTerrain : EditorWindow
             }
         td.SetHeights(0, 0, alturas);
 
-        if (capas.Count > 0)
+        if (pintarBorde && capas.Count > 0)
         {
             td.terrainLayers = capas.ToArray();
             int ar = resolucionAlphamap, nl = capas.Count;
@@ -377,6 +448,7 @@ public class GeneradorOrillasTerrain : EditorWindow
         t.drawTreesAndFoliage = false;
         t.shadowCastingMode = ShadowCastingMode.Off;
         t.reflectionProbeUsage = ReflectionProbeUsage.Off;
+        return t;
     }
 
     // ---------- Utilidades ----------

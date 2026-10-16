@@ -23,10 +23,11 @@ public class GeneradorOrillasTerrain : EditorWindow
     float alturaMontanas = 1100f;          // m
     float inicioMontanas = 900f;           // m desde el borde del mapa
     float distanciaMezcla = 600f;          // m en los que se suman las colinas sobre el relieve espejo
-    float distanciaEspejo = 2500f;         // m en los que el relieve del mapa se refleja antes de desvanecerse
+    float distanciaEspejo = 1500f;         // m en los que el relieve del mapa continúa antes de desvanecerse
     bool igualarResolucion = true;         // anillo 1 con la misma resolución que el mapa (colores y unión iguales)
     bool usarPintor = true;                // pintar con el Procedural Terrain Painter de la escena
-    int resAnillo1Actual;
+    int resAnillo1Actual, resMapa;
+    float pixelErrorMapa;
     float escalaColinas = 1200f;           // longitud de onda aprox. (m)
     float escalaMontanas = 2600f;
     int semilla = 1234;
@@ -52,7 +53,7 @@ public class GeneradorOrillasTerrain : EditorWindow
         alturaMontanas = EditorGUILayout.FloatField("Altura montañas (m)", alturaMontanas);
         inicioMontanas = EditorGUILayout.FloatField("Montañas empiezan a (m)", inicioMontanas);
         distanciaMezcla = EditorGUILayout.FloatField("Distancia de mezcla (m)", distanciaMezcla);
-        distanciaEspejo = EditorGUILayout.FloatField("Distancia de espejo (m)", distanciaEspejo);
+        distanciaEspejo = EditorGUILayout.FloatField("Distancia de continuación (m)", distanciaEspejo);
         escalaColinas = EditorGUILayout.FloatField("Escala colinas (m)", escalaColinas);
         escalaMontanas = EditorGUILayout.FloatField("Escala montañas (m)", escalaMontanas);
         semilla = EditorGUILayout.IntField("Semilla", semilla);
@@ -126,7 +127,9 @@ public class GeneradorOrillasTerrain : EditorWindow
             bool conPintor = pintor != null && pintor.layerSettings != null && pintor.layerSettings.Count > 0;
             if (usarPintor && !conPintor) Debug.LogWarning("[Orillas] No encontré un Terrain Painter configurado; uso la pintura del borde.");
 
-            resAnillo1Actual = igualarResolucion ? referencia.terrainData.heightmapResolution : resolucionAnillo1;
+            resMapa = referencia.terrainData.heightmapResolution;
+            pixelErrorMapa = referencia.heightmapPixelError;
+            resAnillo1Actual = igualarResolucion ? resMapa : resolucionAnillo1;
             ConstruirCapas(internos);
             ConstruirPerfiles(resAnillo1Actual);
 
@@ -324,12 +327,22 @@ public class GeneradorOrillasTerrain : EditorWindow
         return s / norm;
     }
 
-    // Altura del mapa en el punto reflejado como espejo respecto al borde.
-    float AlturaEspejo(float x, float z)
+    // Continuación del mapa: mantiene la altura Y la pendiente del borde (sin pliegue).
+    // Fórmula h(borde + t) = 2·h(borde) − h(borde − t), aplicada en Z y luego en X para las esquinas.
+    float ContinuacionZ(float x, float z)
     {
-        float rx = x < minX ? 2f * minX - x : (x > maxX ? 2f * maxX - x : x);
-        float rz = z < minZ ? 2f * minZ - z : (z > maxZ ? 2f * maxZ - z : z);
-        return AlturaInterior(Mathf.Clamp(rx, minX, maxX), Mathf.Clamp(rz, minZ, maxZ));
+        if (z < minZ) return 2f * AlturaInterior(x, minZ) - AlturaInterior(x, Mathf.Min(2f * minZ - z, maxZ));
+        if (z > maxZ) return 2f * AlturaInterior(x, maxZ) - AlturaInterior(x, Mathf.Max(2f * maxZ - z, minZ));
+        return AlturaInterior(x, z);
+    }
+
+    float Continuacion(float x, float z)
+    {
+        float h;
+        if (x < minX) h = 2f * ContinuacionZ(minX, z) - ContinuacionZ(Mathf.Min(2f * minX - x, maxX), z);
+        else if (x > maxX) h = 2f * ContinuacionZ(maxX, z) - ContinuacionZ(Mathf.Max(2f * maxX - x, minX), z);
+        else h = ContinuacionZ(x, z);
+        return Mathf.Max(0f, h);
     }
 
     float Altura(float x, float z, out float d, out float baseH)
@@ -339,7 +352,9 @@ public class GeneradorOrillasTerrain : EditorWindow
         float lejano = ps[Mathf.Clamp(Mathf.RoundToInt(coord), 0, ps.Length - 1)];
         float desvanecer = Suave(d / distanciaEspejo);
         float espaciado = tam.x / (resAnillo1Actual - 1);
-        float cercano = desvanecer >= 1f ? lejano : (d < espaciado * 0.5f ? b : AlturaEspejo(x, z));
+        // Con resolución distinta a la del mapa, el borde se sube al máximo local para no dejar huecos.
+        bool bordeAjustado = resAnillo1Actual != resMapa && d < espaciado * 0.5f;
+        float cercano = desvanecer >= 1f ? lejano : (bordeAjustado ? b : Continuacion(x, z));
         baseH = Mathf.Lerp(cercano, lejano, desvanecer);
         float mezcla = Suave(d / distanciaMezcla);
         float maxD = anillos * tam.x * 0.85f;
@@ -443,7 +458,8 @@ public class GeneradorOrillasTerrain : EditorWindow
         t.drawInstanced = referencia.drawInstanced;
         t.groupingID = referencia.groupingID;
         t.allowAutoConnect = true;
-        t.heightmapPixelError = pixelError;
+        // El anillo pegado al mapa usa el mismo nivel de detalle que el mapa para que no se abran grietas.
+        t.heightmapPixelError = res == resMapa ? pixelErrorMapa : pixelError;
         t.basemapDistance = Mathf.Min(referencia.basemapDistance, 1000f);
         t.drawTreesAndFoliage = false;
         t.shadowCastingMode = ShadowCastingMode.Off;

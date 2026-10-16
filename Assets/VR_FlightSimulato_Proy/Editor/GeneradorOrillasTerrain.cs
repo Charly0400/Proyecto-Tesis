@@ -66,6 +66,7 @@ public class GeneradorOrillasTerrain : EditorWindow
 
         EditorGUILayout.Space();
         if (GUILayout.Button("Generar orillas", GUILayout.Height(32))) Generar();
+        if (GUILayout.Button("Corregir vecinos (quita los warnings, sin regenerar)")) CorregirVecinos();
         if (GUILayout.Button("Borrar orillas")) Borrar(true);
     }
 
@@ -456,7 +457,7 @@ public class GeneradorOrillasTerrain : EditorWindow
         t.terrainData = td;
         t.materialTemplate = referencia.materialTemplate;
         t.drawInstanced = referencia.drawInstanced;
-        t.groupingID = referencia.groupingID;
+        t.groupingID = GrupoPara(res, resMapa, referencia.groupingID);
         t.allowAutoConnect = true;
         // El anillo pegado al mapa usa el mismo nivel de detalle que el mapa para que no se abran grietas.
         t.heightmapPixelError = res == resMapa ? pixelErrorMapa : pixelError;
@@ -465,6 +466,31 @@ public class GeneradorOrillasTerrain : EditorWindow
         t.shadowCastingMode = ShadowCastingMode.Off;
         t.reflectionProbeUsage = ReflectionProbeUsage.Off;
         return t;
+    }
+
+    // Unity solo une terrenos vecinos con la misma resolución de heightmap; si no, lanza
+    // "neighbor ... has a different heightmap resolution" sin parar. Separamos por grupo.
+    static int GrupoPara(int res, int resDelMapa, int grupoMapa) =>
+        res == resDelMapa ? grupoMapa : grupoMapa + 1000 + res;
+
+    // Aplica los grupos a orillas ya generadas, sin regenerarlas.
+    static void CorregirVecinos()
+    {
+        var padre = GameObject.Find(NombrePadre);
+        if (padre == null) { EditorUtility.DisplayDialog("Orillas", "No hay orillas generadas en la escena.", "OK"); return; }
+        Terrain mapa = null;
+        foreach (var t in Object.FindObjectsByType<Terrain>(FindObjectsSortMode.None))
+            if (t.terrainData != null && !EsOrilla(t.transform)) { mapa = t; break; }
+        if (mapa == null) return;
+        int resDelMapa = mapa.terrainData.heightmapResolution, cambiados = 0;
+        foreach (var t in padre.GetComponentsInChildren<Terrain>(true))
+        {
+            int g = GrupoPara(t.terrainData.heightmapResolution, resDelMapa, mapa.groupingID);
+            if (t.groupingID != g) { Undo.RecordObject(t, "Corregir vecinos"); t.groupingID = g; cambiados++; }
+        }
+        Terrain.SetConnectivityDirty();
+        EditorSceneManager.MarkSceneDirty(padre.scene);
+        Debug.Log($"[Orillas] Grupos corregidos en {cambiados} terrenos.");
     }
 
     // ---------- Utilidades ----------

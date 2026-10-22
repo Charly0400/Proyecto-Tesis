@@ -2,8 +2,6 @@ using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
-using UnityEngine.Rendering;
-using UnityEngine.UI;
 
 namespace Charly.FlightController {
     /// <summary>
@@ -108,14 +106,10 @@ namespace Charly.FlightController {
         private bool m_Relocating;
         private float m_TimeLeft;
         private float m_GraceEndTime;
+        private float m_ListenerVolume = 1f;
 
-        private Image m_FadeImage;
-        private GameObject m_FadeRoot;
+        private OverlayFade m_Fade;
         private GameObject m_HudRoot;
-
-        // Material de UI que se dibuja encima de todo (ignora profundidad): la cabina no tapa el fade ni el aviso
-        private const int OverlayQueue = 4000;
-        private static readonly int GuiZTestMode = Shader.PropertyToID("unity_GUIZTestMode");
 
         #region Unity Methods
         private void Reset() {
@@ -174,6 +168,24 @@ namespace Charly.FlightController {
 
             if (m_TimeLeft <= 0f) StartCoroutine(Relocate());
         }
+
+        /// <summary>
+        /// Se puede desactivar en cualquier momento (p. ej. CrashHandler lo apaga durante un choque):
+        /// corta la alarma, el aviso y un regreso a medias sin dejar la pantalla en negro.
+        /// </summary>
+        private void OnDisable() {
+            if (m_Relocating) {
+                StopAllCoroutines();
+                m_Relocating = false;
+                m_Fade?.SetAlpha(0f);
+                AudioListener.volume = m_ListenerVolume;
+            }
+            if (m_InWarning) EndWarning();
+        }
+
+        private void OnEnable() {
+            m_GraceEndTime = Time.time + graceTime;
+        }
         #endregion
 
         #region Advertencia
@@ -219,14 +231,14 @@ namespace Charly.FlightController {
             StopAlarm();
             SetHudVisible(false);
 
-            float listenerVolume = AudioListener.volume;
+            m_ListenerVolume = AudioListener.volume;
 
-            yield return Fade(0f, 1f, fadeOutTime, listenerVolume);
+            yield return Fade(0f, 1f, fadeOutTime);
             TurnAndMoveInside();
             if (blackHoldTime > 0f) yield return new WaitForSeconds(blackHoldTime);
-            yield return Fade(1f, 0f, fadeInTime, listenerVolume);
+            yield return Fade(1f, 0f, fadeInTime);
 
-            AudioListener.volume = listenerVolume;
+            AudioListener.volume = m_ListenerVolume;
             m_TimeLeft = warningTime;
             m_GraceEndTime = Time.time + graceTime;
             m_Relocating = false;
@@ -315,45 +327,12 @@ namespace Charly.FlightController {
 
         #region Fade
         private void SetupFade() {
-            if (headCamera == null) return;
-
-            // Canvas en el mundo pegado a la cámara: funciona en ambos ojos del visor
-            float distance = Mathf.Max(headCamera.nearClipPlane * 1.5f, 0.05f);
-            m_FadeRoot = CreateCameraCanvas("BoundaryFade", distance, 100f, 100f, distance * 12f / 100f, 32767);
-
-            var imageGo = new GameObject("Fade", typeof(RectTransform), typeof(Image));
-            imageGo.layer = m_FadeRoot.layer;
-            imageGo.transform.SetParent(m_FadeRoot.transform, false);
-            var rt = (RectTransform)imageGo.transform;
-            rt.anchorMin = Vector2.zero;
-            rt.anchorMax = Vector2.one;
-            rt.offsetMin = rt.offsetMax = Vector2.zero;
-
-            m_FadeImage = imageGo.GetComponent<Image>();
-            m_FadeImage.raycastTarget = false;
-            m_FadeImage.material = CreateOverlayMaterial(Canvas.GetDefaultCanvasMaterial());
-            SetFadeAlpha(0f);
+            m_Fade = OverlayFade.Create(headCamera, "BoundaryFade", fadeColor, 32767);
         }
 
-        private IEnumerator Fade(float from, float to, float duration, float listenerVolume) {
-            float t = 0f;
-            while (t < duration) {
-                t += Time.deltaTime;
-                float a = Mathf.Lerp(from, to, Mathf.Clamp01(t / duration));
-                SetFadeAlpha(a);
-                AudioListener.volume = listenerVolume * (1f - audioDuck * a);
-                yield return null;
-            }
-            SetFadeAlpha(to);
-            AudioListener.volume = listenerVolume * (1f - audioDuck * to);
-        }
-
-        private void SetFadeAlpha(float alpha) {
-            if (m_FadeImage == null) return;
-            Color c = fadeColor;
-            c.a = alpha;
-            m_FadeImage.color = c;
-            m_FadeRoot.SetActive(alpha > 0.001f);
+        private IEnumerator Fade(float from, float to, float duration) {
+            if (m_Fade == null) yield break;
+            yield return m_Fade.Fade(from, to, duration, m_ListenerVolume, audioDuck);
         }
         #endregion
 
@@ -411,28 +390,10 @@ namespace Charly.FlightController {
                 m_HudRoot = warningText.gameObject;
             }
             else if (createDefaultHud && headCamera != null) {
-                // 1 unidad del canvas = 1 mm. Panel de 70 x 16 cm a 0.9 m, un poco arriba del centro de la vista
-                m_HudRoot = CreateCameraCanvas("BoundaryHud", 0.9f, 700f, 160f, 0.001f, 32000);
-                m_HudRoot.transform.localPosition = new Vector3(0f, 0.08f, 0.9f);
-
-                var textGo = new GameObject("Aviso", typeof(RectTransform));
-                textGo.layer = m_HudRoot.layer;
-                textGo.transform.SetParent(m_HudRoot.transform, false);
-                var rt = (RectTransform)textGo.transform;
-                rt.anchorMin = Vector2.zero;
-                rt.anchorMax = Vector2.one;
-                rt.offsetMin = rt.offsetMax = Vector2.zero;
-
-                var tmp = textGo.AddComponent<TextMeshProUGUI>();
-                tmp.alignment = TextAlignmentOptions.Center;
-                tmp.fontSize = 42f;
-                tmp.fontStyle = FontStyles.Bold;
-                tmp.raycastTarget = false;
-                if (tmp.font == null)
-                    Debug.LogWarning("MapBoundary: TextMeshPro no tiene fuente por defecto; el aviso no se verá.", this);
-                else
-                    tmp.fontMaterial = CreateOverlayMaterial(tmp.fontMaterial);
-                warningText = tmp;
+                // Panel de 70 x 16 cm a 0.9 m, un poco arriba del centro de la vista
+                warningText = VROverlay.CreateText(headCamera, "BoundaryHud", new Vector3(0f, 0.08f, 0.9f),
+                                                   new Vector2(700f, 160f), 42f, 32000, this);
+                if (warningText != null) m_HudRoot = warningText.transform.parent.gameObject;
             }
             SetHudVisible(false);
         }
@@ -462,30 +423,6 @@ namespace Charly.FlightController {
         #endregion
 
         #region Utilidades
-        /// <summary>Canvas World Space hijo de la cámara, sin raycaster (las manos XR no lo pueden tocar).</summary>
-        private GameObject CreateCameraCanvas(string name, float distance, float width, float height, float scale, int sortingOrder) {
-            var go = new GameObject(name, typeof(RectTransform), typeof(Canvas));
-            go.layer = headCamera.gameObject.layer;
-            go.transform.SetParent(headCamera.transform, false);
-            go.transform.localPosition = new Vector3(0f, 0f, distance);
-            go.transform.localRotation = Quaternion.identity;
-            go.transform.localScale = Vector3.one * scale;
-
-            var canvas = go.GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.WorldSpace;
-            canvas.worldCamera = headCamera;
-            canvas.sortingOrder = sortingOrder;
-            ((RectTransform)go.transform).sizeDelta = new Vector2(width, height);
-            return go;
-        }
-
-        private static Material CreateOverlayMaterial(Material source) {
-            var mat = new Material(source);
-            mat.SetInt(GuiZTestMode, (int)CompareFunction.Always);
-            mat.renderQueue = OverlayQueue;
-            return mat;
-        }
-
         /// <summary>
         /// Centra el círculo en los Terrain CON colisión (las orillas decorativas no tienen) y usa el lado
         /// más corto menos 'edgeMargin' como radio. El techo queda sobre la montaña más alta.

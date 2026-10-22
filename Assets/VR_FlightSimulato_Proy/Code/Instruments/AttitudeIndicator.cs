@@ -19,12 +19,25 @@ namespace Charly.FlightController.Instruments {
         private float m_pitchDegSmoothed;
         private float m_rollDegSmoothed;
 
-        private Vector3 m_forward;
-        private Vector3 m_right;
         private float m_pitchDegRaw;
         private float m_rollDegRaw;
 
+        // Z local con la que se colocó la barra en la escena. Solo movemos X/Y para no
+        // dejarla en el mismo plano que el fondo del horizonte (eso provocaba parpadeo).
+        private float m_verticalLineBaseZ;
+
+        // m_smoothnessAlpha se ajustó "por frame" a esta frecuencia; se escala con deltaTime
+        // para que el suavizado se sienta igual aunque cambien los FPS.
+        private const float SMOOTHING_REFERENCE_HZ = 90f;
+
+        private void Awake() {
+            if (m_verticalLineTransform != null)
+                m_verticalLineBaseZ = m_verticalLineTransform.localPosition.z;
+        }
+
         void Update() {
+            if (m_planeTransform == null || m_verticalLineTransform == null || m_rollLineTransform == null) return;
+
             GetRawAngles();
             ApplySmoothness();
             MapToGraphics();
@@ -32,32 +45,33 @@ namespace Charly.FlightController.Instruments {
         }
 
         private void GetRawAngles() {
-            m_forward = m_planeTransform.forward;
-            m_right = m_planeTransform.right;
-     
-            float horizontalForward = Mathf.Sqrt((m_forward.x * m_forward.x) + (m_forward.z * m_forward.z));
-            float pitchRad = Mathf.Atan2(m_forward.y, horizontalForward);
-            m_pitchDegRaw = pitchRad * Mathf.Rad2Deg;
+            Vector3 forward = m_planeTransform.forward;
+            Vector3 right = m_planeTransform.right;
+            Vector3 up = m_planeTransform.up;
 
-            float horizontalRight = Mathf.Sqrt(Mathf.Pow(m_right.x, 2f) + Mathf.Pow(m_right.z, 2f));
-            float rollRad = Mathf.Atan2(m_right.y, horizontalRight);
-            m_rollDegRaw = rollRad * Mathf.Rad2Deg;
+            // Pitch: ángulo del morro respecto al plano horizontal (-90..90)
+            float horizontalForward = Mathf.Sqrt((forward.x * forward.x) + (forward.z * forward.z));
+            m_pitchDegRaw = Mathf.Atan2(forward.y, horizontalForward) * Mathf.Rad2Deg;
+
+            // Roll: right.y = sin(roll)·cos(pitch) y up.y = cos(roll)·cos(pitch),
+            // así que atan2 da el alabeo real en -180..180 (incluye vuelo invertido)
+            m_rollDegRaw = Mathf.Atan2(right.y, up.y) * Mathf.Rad2Deg;
         }
 
-        private void ApplySmoothness() {   
-            m_pitchDegSmoothed = Mathf.Lerp( m_pitchDegSmoothed, m_pitchDegRaw , m_smoothnessAlpha);
-            m_rollDegSmoothed  = Mathf.Lerp( m_rollDegSmoothed, m_rollDegRaw, m_smoothnessAlpha);
+        private void ApplySmoothness() {
+            float t = 1f - Mathf.Pow(1f - m_smoothnessAlpha, Time.deltaTime * SMOOTHING_REFERENCE_HZ);
+            m_pitchDegSmoothed = Mathf.Lerp(m_pitchDegSmoothed, m_pitchDegRaw, t);
+            // LerpAngle para que al cruzar 180/-180 (invertido) no dé la vuelta completa
+            m_rollDegSmoothed = Mathf.DeltaAngle(0f, Mathf.LerpAngle(m_rollDegSmoothed, m_rollDegRaw, t));
         }
 
         private void MapToGraphics() {
+            // Morro arriba -> la línea del horizonte baja (como en un horizonte artificial real)
+            float pitch = Mathf.Clamp(m_pitchDegSmoothed, -90f, 90f);
+            float offsetY = -pitch * m_pixelsPerDegree;
+            m_verticalLineTransform.localPosition = new Vector3(0, offsetY, m_verticalLineBaseZ);
 
-            m_pitchDegRaw = Mathf.Clamp(m_pitchDegRaw, -90f, 90f);
-            float offsetY = m_pitchDegSmoothed * m_pixelsPerDegree;
-            m_verticalLineTransform.localPosition = new Vector3(0, offsetY, 0);
-
-            m_rollDegRaw = Mathf.Clamp(m_rollDegRaw, -180f, 180f);
             m_rollLineTransform.localEulerAngles = new Vector3(0, 0, -m_rollDegSmoothed);
-
         }
 
         private void DebugDisplay() {

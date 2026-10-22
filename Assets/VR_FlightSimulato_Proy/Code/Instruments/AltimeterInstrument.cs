@@ -1,4 +1,3 @@
-using UnityEngine.ProBuilder;
 using System.ComponentModel;
 using UnityEngine;
 using TMPro;
@@ -44,7 +43,9 @@ namespace Charly.FlightController.Instruments {
         private float m_currentAngle10K = 0f;
 
         private void Update() {
-            // 1) Obtener altitud (pies)
+            if (m_aircraftTransform == null) return;
+
+            // 1) Obtener altitud en la unidad seleccionada (pies o metros)
             float currentAltitudeUnit = GetAltitudeUnit();
 
             // 2) Calcular ángulos objetivo para cada aguja
@@ -85,7 +86,8 @@ namespace Charly.FlightController.Instruments {
                     return Mathf.RoundToInt(alt).ToString() + " m";
                 case AltimeterMode.Feet:
                 default:
-                    return Mathf.RoundToInt(alt * M_TO_FT).ToString() + " ft";
+                    // alt ya viene en pies desde GetAltitudeUnit(); no volver a convertir
+                    return Mathf.RoundToInt(alt).ToString() + " ft";
             }
         }
 

@@ -211,6 +211,11 @@ namespace Charly.FlightController {
                 Debug.Log($"[FlightTelemetry] Colisiones internas ignoradas: {pairs} pares", this);
         }
 
+        /// <summary>True si el collider es parte del avión (incluye palancas y el rig XR cuando el piloto va sentado).</summary>
+        public bool IsOwnPart(Collider other) {
+            return other != null && other.transform.IsChildOf(transform);
+        }
+
         // Si hay empuje pero el avión no se mueve, dice qué colliders lo están frenando (máx. 1 vez por segundo)
         private float nextStuckLogTime;
         private void OnCollisionStay(Collision collision) {
@@ -225,6 +230,14 @@ namespace Charly.FlightController {
         }
 
         private void OnCollisionEnter(Collision collision) {
+            // Una pieza propia (palanca, switch, rig XR) volvió a chocar con el avión: Unity pierde el IgnoreCollision
+            // si ese collider se desactiva/reactiva o si no estaba activo al aplicarlo. Se vuelve a aplicar para que no lo frene.
+            if (IsOwnPart(collision.collider)) {
+                Debug.LogWarning($"AircraftPhysics: '{collision.collider.name}' (pieza del propio avión) chocó con el avión. " +
+                                 "Se vuelven a ignorar las colisiones internas.", collision.collider);
+                RefreshIgnoredCollisions();
+            }
+
             if (!logTelemetry) return;
             Debug.Log($"[FlightTelemetry] COLISIÓN con '{collision.collider.name}' " +
                       $"(rb: {(collision.rigidbody != null ? collision.rigidbody.name : "ninguno")}, " +

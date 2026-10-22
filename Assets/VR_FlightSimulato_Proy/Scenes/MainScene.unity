@@ -21039,6 +21039,10 @@ PrefabInstance:
       propertyPath: m_OnValueChange.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
       objectReference: {fileID: 0}
+    - target: {fileID: 5956005466988140063, guid: 27d196363b859c94e99a31a690e3ecf7, type: 3}
+      propertyPath: m_Unit
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 7314273626665086084, guid: 27d196363b859c94e99a31a690e3ecf7, type: 3}
       propertyPath: m_OnPress.m_PersistentCalls.m_Calls.Array.data[1].m_Target
       value: 
@@ -21050,6 +21054,10 @@ PrefabInstance:
     - target: {fileID: 8323208596304118760, guid: 27d196363b859c94e99a31a690e3ecf7, type: 3}
       propertyPath: OnJoystickMove.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 9077716601401609144, guid: 27d196363b859c94e99a31a690e3ecf7, type: 3}
+      propertyPath: m_altimeterMode
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 3650698331993177966, guid: 27d196363b859c94e99a31a690e3ecf7, type: 3}
@@ -55269,7 +55277,7 @@ MonoBehaviour:
   t_Stalled: 0
   logTelemetry: 1
   telemetryLogInterval: 0.5
-  ignoreInternalCollisions: 1
+  ignoreInternalCollisions: 0
   syncPhysicsToHeadset: 1
   fallbackPhysicsHz: 90
 --- !u!114 &1837242067 stripped

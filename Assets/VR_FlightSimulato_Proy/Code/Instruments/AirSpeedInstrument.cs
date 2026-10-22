@@ -61,6 +61,7 @@ namespace Charly.FlightController.Instruments {
 
         // estado interno
         private float m_DisplayAngle = 0f;
+        private bool m_WarnedInvalidScale = false;
 
         // constantes de conversión (m/s -> unidad)
         private const float MPS_TO_KPH = 3.6f;
@@ -82,7 +83,8 @@ namespace Charly.FlightController.Instruments {
 
             // 4. suavizar
             float smooth = 1f - Mathf.Exp(-m_SmoothingFactor * Time.deltaTime);
-            m_DisplayAngle = Mathf.LerpAngle(m_DisplayAngle, targetAngle, smooth);
+            // Lerp normal: el barrido pasa de 180° y LerpAngle tomaría el camino corto por fuera de la escala
+            m_DisplayAngle = Mathf.Lerp(m_DisplayAngle, targetAngle, smooth);
 
             // 5. aplicar rotación (con dirección)
             float finalAngle = m_Clockwise ? m_DisplayAngle : -m_DisplayAngle;
@@ -97,7 +99,10 @@ namespace Charly.FlightController.Instruments {
         private float CalculateNonLinearAngle(float speed) {
             // Si no hay suficientes puntos, usar mapeo lineal
             if (m_SpeedMarkers == null || m_AnglePercentages == null || m_SpeedMarkers.Length < 2 || m_SpeedMarkers.Length != m_AnglePercentages.Length) {
-                Debug.LogWarning("Configuración de escala no lineal inválida. Usando mapeo lineal.");
+                if (!m_WarnedInvalidScale) {
+                    Debug.LogWarning("Configuración de escala no lineal inválida. Usando mapeo lineal.", this);
+                    m_WarnedInvalidScale = true;
+                }
                 return MapSpeedToAngleLinear(speed);
             }
 
@@ -152,12 +157,12 @@ namespace Charly.FlightController.Instruments {
                 case SpeedUnit.KPH:
                     return "km/h";
                 case SpeedUnit.MPH:
-                    return "M/h";
+                    return "mph";
                 case SpeedUnit.KTS:
-                    return "Knots";
+                    return "kt";
                 case SpeedUnit.MACH:
                     return "Mach";
-                default: return "MPH";
+                default: return "mph";
             }
         }
 

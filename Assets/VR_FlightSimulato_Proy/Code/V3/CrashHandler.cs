@@ -148,7 +148,7 @@ namespace Charly.FlightController {
         }
 
         private void OnCollisionEnter(Collision collision) {
-            if (!CanCrash() || collision.contactCount == 0) return;
+            if (!CanCrash(collision)) return;
 
             ContactPoint contact = collision.GetContact(0);
             Vector3 relVel = collision.relativeVelocity;
@@ -176,15 +176,18 @@ namespace Charly.FlightController {
 
         // Un toque suave puede terminar con el avión volcado (p. ej. capotar): eso también es choque
         private void OnCollisionStay(Collision collision) {
-            if (!CanCrash() || collision.contactCount == 0) return;
+            if (!CanCrash(collision)) return;
             if (TiltDeg() > flippedTiltDeg && Mathf.Abs(collision.GetContact(0).normal.y) >= minGroundNormalY)
                 Crash("El avión se volcó", collision, collision.relativeVelocity.magnitude, 0f);
         }
         #endregion
 
         #region Detección
-        private bool CanCrash() {
-            if (m_Crashed || Time.time < m_GraceEndTime) return false;
+        private bool CanCrash(Collision collision) {
+            if (m_Crashed || Time.time < m_GraceEndTime || collision.contactCount == 0) return false;
+            // Piezas del propio avión (palancas, switches, rig XR sentado) nunca cuentan como choque.
+            // Si llegan a chocar es porque se perdió su IgnoreCollision; AircraftPhysics lo vuelve a aplicar.
+            if (collision.collider != null && collision.collider.transform.IsChildOf(transform)) return false;
             // Durante el regreso del límite del mapa el avión se teletransporta: no contar eso
             return mapBoundary == null || !mapBoundary.IsRelocating;
         }

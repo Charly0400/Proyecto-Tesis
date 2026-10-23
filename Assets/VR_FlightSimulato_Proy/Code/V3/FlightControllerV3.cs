@@ -59,6 +59,8 @@ namespace Charly.FlightController {
         public float Roll => m_DirectionInput.x;
         /// <summary>Giro de muñeca -1..1 (derecha = positivo).</summary>
         public float Yaw => m_YawInput;
+        /// <summary>Posición de los flaps 0..1 (0 = retraídos, 1 = extendidos al máximo).</summary>
+        public float Flaps => m_FlapsInput;
         public bool EngineOn => m_EngineOn;
 
         // ───────── Compatibilidad con UI / otros scripts ─────────
@@ -74,6 +76,7 @@ namespace Charly.FlightController {
         private float m_CurrentThrottle;  // throttle real (suavizado)
         private Vector2 m_DirectionInput;
         private float m_YawInput;
+        private float m_FlapsInput;
         private bool m_EngineOn;
 
         private JoystickXRV2 m_FlightStickV2;
@@ -180,6 +183,11 @@ namespace Charly.FlightController {
 
         public void SetDirectionInput(Vector2 input) {
             m_DirectionInput = Vector2.ClampMagnitude(input, 1f);
+        }
+
+        /// <summary>Para conectar por el Inspector la palanca o switch de flaps (0..1).</summary>
+        public void SetFlaps(float input) {
+            m_FlapsInput = Mathf.Clamp01(input);
         }
         #endregion
 

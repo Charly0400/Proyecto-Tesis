@@ -16224,6 +16224,10 @@ PrefabInstance:
       propertyPath: m_Mesh
       value: 
       objectReference: {fileID: 376468042}
+    - target: {fileID: 1460360384483996509, guid: 716a8d0b583476246b304f86e09e1862, type: 3}
+      propertyPath: m_VersionIndex
+      value: 4015
+      objectReference: {fileID: 0}
     - target: {fileID: 2050868629721921287, guid: 716a8d0b583476246b304f86e09e1862, type: 3}
       propertyPath: m_Mesh
       value: 
@@ -16232,6 +16236,10 @@ PrefabInstance:
       propertyPath: m_Mesh
       value: 
       objectReference: {fileID: 1733493843}
+    - target: {fileID: 2825064648704264854, guid: 716a8d0b583476246b304f86e09e1862, type: 3}
+      propertyPath: m_VersionIndex
+      value: 4194
+      objectReference: {fileID: 0}
     - target: {fileID: 4157840500456816519, guid: 716a8d0b583476246b304f86e09e1862, type: 3}
       propertyPath: m_Mesh
       value: 
@@ -20891,6 +20899,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: Thunderbolt V3 (1)
       objectReference: {fileID: 0}
+    - target: {fileID: 1439742323592693461, guid: 27d196363b859c94e99a31a690e3ecf7, type: 3}
+      propertyPath: m_Resource
+      value: 
+      objectReference: {fileID: 8300000, guid: 35bd1bcca17d5014daca49719c4fef39, type: 3}
+    - target: {fileID: 1439742323592693461, guid: 27d196363b859c94e99a31a690e3ecf7, type: 3}
+      propertyPath: m_audioClip
+      value: 
+      objectReference: {fileID: 8300000, guid: 35bd1bcca17d5014daca49719c4fef39, type: 3}
     - target: {fileID: 1559019952257253220, guid: 27d196363b859c94e99a31a690e3ecf7, type: 3}
       propertyPath: m_Mesh
       value: 
@@ -20949,7 +20965,7 @@ PrefabInstance:
       objectReference: {fileID: 621983488}
     - target: {fileID: 4110560453824543252, guid: 27d196363b859c94e99a31a690e3ecf7, type: 3}
       propertyPath: m_VersionIndex
-      value: 4194
+      value: 4200
       objectReference: {fileID: 0}
     - target: {fileID: 4151751615557998389, guid: 27d196363b859c94e99a31a690e3ecf7, type: 3}
       propertyPath: m_LocalPosition.x
@@ -21029,7 +21045,7 @@ PrefabInstance:
       objectReference: {fileID: 688665684}
     - target: {fileID: 5410250008620333467, guid: 27d196363b859c94e99a31a690e3ecf7, type: 3}
       propertyPath: m_VersionIndex
-      value: 4015
+      value: 4021
       objectReference: {fileID: 0}
     - target: {fileID: 5580163440557481379, guid: 27d196363b859c94e99a31a690e3ecf7, type: 3}
       propertyPath: m_Mesh
@@ -21051,6 +21067,14 @@ PrefabInstance:
       propertyPath: m_Mesh
       value: 
       objectReference: {fileID: 38776209}
+    - target: {fileID: 7969572406297485907, guid: 27d196363b859c94e99a31a690e3ecf7, type: 3}
+      propertyPath: idleLoopClip
+      value: 
+      objectReference: {fileID: 8300000, guid: ae9ab68e69e2a6d4caa87ee4af6f28c5, type: 3}
+    - target: {fileID: 7969572406297485907, guid: 27d196363b859c94e99a31a690e3ecf7, type: 3}
+      propertyPath: fullThrottleLoopClip
+      value: 
+      objectReference: {fileID: 8300000, guid: 1600cbd68e6f8c845aa56b693b0956e8, type: 3}
     - target: {fileID: 8323208596304118760, guid: 27d196363b859c94e99a31a690e3ecf7, type: 3}
       propertyPath: OnJoystickMove.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
@@ -40780,6 +40804,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 3246941517996005419, guid: 91e0c60adf0319b43b57900d8c6210f1, type: 3}
+      propertyPath: m_RaycastMask.m_Bits
+      value: 33
+      objectReference: {fileID: 0}
     - target: {fileID: 3263190927257029563, guid: 91e0c60adf0319b43b57900d8c6210f1, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0.015648337
@@ -40803,6 +40831,10 @@ PrefabInstance:
     - target: {fileID: 3386811329946263369, guid: 91e0c60adf0319b43b57900d8c6210f1, type: 3}
       propertyPath: m_LocalPosition.z
       value: 0.010057187
+      objectReference: {fileID: 0}
+    - target: {fileID: 4950127746032848700, guid: 91e0c60adf0319b43b57900d8c6210f1, type: 3}
+      propertyPath: m_RaycastMask.m_Bits
+      value: 2147483712
       objectReference: {fileID: 0}
     - target: {fileID: 5514742969643837357, guid: 91e0c60adf0319b43b57900d8c6210f1, type: 3}
       propertyPath: m_LocalPosition.x
@@ -40915,6 +40947,10 @@ PrefabInstance:
     - target: {fileID: 8689627030620487417, guid: 91e0c60adf0319b43b57900d8c6210f1, type: 3}
       propertyPath: m_RotationOffset.z
       value: 6.4700794
+      objectReference: {fileID: 0}
+    - target: {fileID: 8969986849101866879, guid: 91e0c60adf0319b43b57900d8c6210f1, type: 3}
+      propertyPath: m_RaycastMask.m_Bits
+      value: 33
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -55277,7 +55313,8 @@ MonoBehaviour:
   t_Stalled: 0
   logTelemetry: 1
   telemetryLogInterval: 0.5
-  ignoreInternalCollisions: 0
+  ignoreInternalCollisions: 1
+  aircraftLayerName: Avion
   syncPhysicsToHeadset: 1
   fallbackPhysicsHz: 90
 --- !u!114 &1837242067 stripped
@@ -67042,6 +67079,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   engineSwitch: {fileID: 2600220053741386959}
   throttle: {fileID: 3864732197035738115}
+  throttleV2: {fileID: 0}
   engineAudioSource: {fileID: 8408065398178033033}
   oneShotAudioSource: {fileID: 7278760868292865305}
   engineStartClip: {fileID: 8300000, guid: b088634c1cf7ff9418cb9ea7e3a09dcc, type: 3}
@@ -81752,6 +81790,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   throttleLever: {fileID: 0}
   flightStick: {fileID: 0}
+  engineSwitch: {fileID: 0}
   aircraftPhysics: {fileID: 0}
   throttleAccelerationRate: 45
   throttleDecelerationRate: 20

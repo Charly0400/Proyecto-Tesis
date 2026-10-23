@@ -247,7 +247,8 @@ namespace Charly.FlightController {
             m_CollisionMode = m_Rigidbody.collisionDetectionMode;
             m_Rigidbody.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
             m_Rigidbody.isKinematic = true;
-            if (flightController != null) flightController.StopEngine();
+            // Switch abajo y palanca en 0 desde ya: el sonido de apagado queda tapado por el golpe y el fade
+            if (flightController != null) flightController.ResetControls();
 
             if (mapBoundary != null) {
                 m_BoundaryWasEnabled = mapBoundary.enabled;
@@ -280,7 +281,7 @@ namespace Charly.FlightController {
             onRespawned?.Invoke();
         }
 
-        /// <summary>Pone el avión en la pista, quieto y con el motor apagado. El XR Origin es hijo del asiento, así que viaja con él.</summary>
+        /// <summary>Pone el avión en la pista, quieto, con el switch de motor abajo y la palanca en 0. El XR Origin es hijo del asiento, así que viaja con él.</summary>
         private void Respawn() {
             transform.SetPositionAndRotation(m_SpawnPosition, m_SpawnRotation);
             m_Rigidbody.position = m_SpawnPosition;
@@ -291,7 +292,8 @@ namespace Charly.FlightController {
             m_Rigidbody.angularVelocity = Vector3.zero;
             Physics.SyncTransforms();
 
-            if (flightController != null) flightController.StopEngine();
+            // Otra vez por si el piloto movió algo durante el negro
+            if (flightController != null) flightController.ResetControls();
             if (mapBoundary != null && m_BoundaryWasEnabled) mapBoundary.enabled = true;
 
             m_LastVelocity = Vector3.zero;

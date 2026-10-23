@@ -1,5 +1,6 @@
 using MikeNspired.XRIStarterKit;
 using UnityEngine;
+using UnityEngine.XR.Interaction.Toolkit;
 
 public class CabinAudio : MonoBehaviour {
     [Header("Audio Sources")]
@@ -23,12 +24,12 @@ public class CabinAudio : MonoBehaviour {
     private bool wasPlaying = false;
 
     private void Awake() {
-        slider = GetComponent<XRToggleSlider>();
+        if (slider == null) slider = GetComponent<XRToggleSlider>();
 
-        // DEBUG: Verificar que todo esté bien
-        if (oneShotSource == null) Debug.LogError("oneShotSource no está asignado!", this);
-        if (loopSource == null) Debug.LogError("loopSource no está asignado!", this);
-        if (doorSlideClip == null) Debug.LogError("doorSlideClip no está asignado!", this);
+        // DEBUG: Verificar que todo estÃ© bien
+        if (oneShotSource == null) Debug.LogError("oneShotSource no estÃ¡ asignado!", this);
+        if (loopSource == null) Debug.LogError("loopSource no estÃ¡ asignado!", this);
+        if (doorSlideClip == null) Debug.LogError("doorSlideClip no estÃ¡ asignado!", this);
 
         // Configurar loop
         if (loopSource != null && doorSlideClip != null) {
@@ -49,10 +50,18 @@ public class CabinAudio : MonoBehaviour {
             slider.OnValueChange.AddListener(OnSliderValueChanged);
             slider.OnMinValue.AddListener(OnDoorOpened);
             slider.OnMaxValue.AddListener(OnDoorClosed);
+            // OnValueChange solo se dispara mientras se arrastra, asÃ­ que al soltar hay que parar el loop aquÃ­
+            slider.selectExited.AddListener(OnSliderReleased);
         }
     }
 
+    private void OnSliderReleased(SelectExitEventArgs args) {
+        StopLoopSound();
+    }
+
     private void OnSliderValueChanged(float newValue) {
+        if (loopSource == null) return;
+
         // Calcular velocidad (cambio por segundo)
         float currentTime = Time.time;
         float deltaTime = currentTime - lastTime;
@@ -65,7 +74,7 @@ public class CabinAudio : MonoBehaviour {
         // DEBUG: Ver velocidad
         // Debug.Log($"Valor: {newValue}, Velocidad: {speed}, Selected: {slider.isSelected}");
 
-        // Si el jugador está interactuando
+        // Si el jugador estÃ¡ interactuando
         if (slider.isSelected) {
             // Si hay movimiento significativo
             if (speed > 0.1f) {
@@ -73,7 +82,7 @@ public class CabinAudio : MonoBehaviour {
                     loopSource.Play();
                     wasPlaying = true;
                 }
-                // Ajustar volumen según velocidad
+                // Ajustar volumen segÃºn velocidad
                 SetLoopVolumeBasedOnSpeed(speed);
             }
             else {
@@ -82,7 +91,7 @@ public class CabinAudio : MonoBehaviour {
             }
         }
         else {
-            // Si nadie está tocando, parar el sonido
+            // Si nadie estÃ¡ tocando, parar el sonido
             if (loopSource.isPlaying && wasPlaying) {
                 loopSource.volume = 0f;
                 loopSource.Stop();
@@ -90,38 +99,39 @@ public class CabinAudio : MonoBehaviour {
             }
         }
 
-        // Guardar valores para próxima vez
+        // Guardar valores para prÃ³xima vez
         lastValue = newValue;
         lastTime = currentTime;
     }
 
-    // Versión mejorada del método de velocidad
+    // VersiÃ³n mejorada del mÃ©todo de velocidad
     private void SetLoopVolumeBasedOnSpeed(float speed) {
         if (loopSource == null) return;
 
-        // Mapear velocidad a volumen (ajusta estos valores según necesites)
+        // Mapear velocidad a volumen (ajusta estos valores segÃºn necesites)
         float minSpeed = 0.1f;
         float maxSpeed = 5f;
         float normalizedSpeed = Mathf.Clamp01((speed - minSpeed) / (maxSpeed - minSpeed));
 
-        // Volumen mínimo para que se escuche aún moviendo lento
+        // Volumen mÃ­nimo para que se escuche aÃºn moviendo lento
         float minVolume = 0.1f * loopVolume;
         float targetVolume = Mathf.Lerp(minVolume, loopVolume, normalizedSpeed);
 
         // Smooth del volumen (para evitar cambios bruscos)
         loopSource.volume = Mathf.Lerp(loopSource.volume, targetVolume, Time.deltaTime * 10f);
 
-        // También ajustar pitch si quieres
-        loopSource.pitch = Mathf.Lerp(0.8f, 1.2f, normalizedSpeed);
+        // TambiÃ©n ajustar pitch si quieres
+        loopSource.pitch = loopPitch * Mathf.Lerp(0.8f, 1.2f, normalizedSpeed);
     }
 
+    // El slider dispara Min/Max tambiÃ©n en su Start con el valor inicial; solo sonar si el jugador la estÃ¡ moviendo
     private void OnDoorOpened() {
-        PlayOneShotSound(doorOpenClip);
+        if (slider.isSelected) PlayOneShotSound(doorOpenClip);
         StopLoopSound();
     }
 
     private void OnDoorClosed() {
-        PlayOneShotSound(doorCloseClip);
+        if (slider.isSelected) PlayOneShotSound(doorCloseClip);
         StopLoopSound();
     }
 
@@ -133,7 +143,7 @@ public class CabinAudio : MonoBehaviour {
     }
 
     private void StopLoopSound() {
-        if (loopSource.isPlaying) {
+        if (loopSource != null && loopSource.isPlaying) {
             loopSource.Stop();
             wasPlaying = false;
         }
@@ -144,6 +154,7 @@ public class CabinAudio : MonoBehaviour {
             slider.OnValueChange.RemoveListener(OnSliderValueChanged);
             slider.OnMinValue.RemoveListener(OnDoorOpened);
             slider.OnMaxValue.RemoveListener(OnDoorClosed);
+            slider.selectExited.RemoveListener(OnSliderReleased);
         }
     }
 }

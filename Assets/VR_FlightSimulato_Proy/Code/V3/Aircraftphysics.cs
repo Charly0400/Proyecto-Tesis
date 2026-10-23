@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.XR;
+using UnityEngine.XR.Interaction.Toolkit.Interactables;
 
 namespace Charly.FlightController {
     /// <summary>
@@ -95,6 +96,11 @@ namespace Charly.FlightController {
                  "(palancas, switches, manos/rig XR sentado). Con Interpolate esos hijos van un paso atrás " +
                  "y a alta velocidad el avión 'choca consigo mismo' y se frena de golpe")]
         [SerializeField] private bool ignoreInternalCollisions = true;
+        [Tooltip("Capa física para los colliders del avión (créala en Project Settings → Tags and Layers). " +
+                 "Las piezas con Rigidbody propio la excluyen (Collider.excludeLayers): a diferencia de IgnoreCollision, " +
+                 "eso no se pierde si la pieza se desactiva y reactiva. Vacío o inexistente = solo IgnoreCollision")]
+        [SerializeField] private string aircraftLayerName = "Avion";
+        private int aircraftLayer = -1;
 
         [Header("Física en VR")]
         [Tooltip("Corre la física a la frecuencia del visor y SIN Interpolate. Así los colliders de la cabina " +
@@ -122,6 +128,39 @@ namespace Charly.FlightController {
                 Debug.LogWarning("AircraftPhysics: no se encontró FlightController, el avión no recibirá controles.", this);
 
             SetupRigidbody();
+            SetupAircraftLayer();
+        }
+
+        /// <summary>Pone los colliders propios del avión (los que mueve este Rigidbody) en la capa del avión.</summary>
+        private void SetupAircraftLayer() {
+            if (!ignoreInternalCollisions || string.IsNullOrEmpty(aircraftLayerName)) return;
+
+            aircraftLayer = LayerMask.NameToLayer(aircraftLayerName);
+            if (aircraftLayer < 0) {
+                Debug.LogWarning($"AircraftPhysics: no existe la capa '{aircraftLayerName}'. Créala en Project Settings → Tags and Layers " +
+                                 "para que las piezas de la cabina nunca choquen con el avión. Mientras tanto se usa solo IgnoreCollision.", this);
+                return;
+            }
+
+            int moved = 0;
+            foreach (var c in GetComponentsInChildren<Collider>(true)) {
+                if (c.isTrigger || c.attachedRigidbody != rb || c.gameObject.layer == aircraftLayer) continue;
+                // Las manos XR solo detectan la capa Default: no mover nada que se pueda agarrar o presionar
+                if (BelongsToInteractable(c.transform)) continue;
+                c.gameObject.layer = aircraftLayer;
+                moved++;
+            }
+
+            if (logTelemetry)
+                Debug.Log($"[FlightTelemetry] {moved} colliders del avión puestos en la capa '{aircraftLayerName}'", this);
+        }
+
+        /// <summary>True si entre 't' y la raíz del avión (sin incluirla) hay un interactable XR.</summary>
+        private bool BelongsToInteractable(Transform t) {
+            for (; t != null && t != transform; t = t.parent) {
+                if (t.GetComponent<XRBaseInteractable>() != null) return true;
+            }
+            return false;
         }
 
         private void Start() {
@@ -198,6 +237,16 @@ namespace Charly.FlightController {
 
             var all = GetComponentsInChildren<Collider>(true);
             int pairs = 0;
+
+            // Protección permanente: las piezas con Rigidbody propio excluyen la capa del avión
+            if (aircraftLayer >= 0) {
+                int mask = 1 << aircraftLayer;
+                foreach (var other in all) {
+                    if (other.attachedRigidbody != null && other.attachedRigidbody != rb)
+                        other.excludeLayers |= mask;
+                }
+            }
+
             foreach (var own in all) {
                 if (own.isTrigger || own.attachedRigidbody != rb) continue;
                 foreach (var other in all) {

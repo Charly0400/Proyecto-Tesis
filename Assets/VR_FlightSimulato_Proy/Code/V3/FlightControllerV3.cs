@@ -1,6 +1,7 @@
 ﻿using MikeNspired.XRIStarterKit;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.XR.Interaction.Toolkit.Interactables;
 
 namespace Charly.FlightController {
     /// <summary>
@@ -14,6 +15,8 @@ namespace Charly.FlightController {
         [Header("VR Controls")]
         [SerializeField] private ThrottleXR throttleLever;
         [SerializeField] private JoystickXR flightStick;
+        [Tooltip("Switch de encendido. Si se deja vacío se busca en los hijos (solo se usa para reiniciar los controles)")]
+        [SerializeField] private XRSwitch engineSwitch;
 
         [Header("Physics Reference")]
         [Tooltip("Si se deja vacío se busca en este mismo GameObject")]
@@ -74,6 +77,7 @@ namespace Charly.FlightController {
         private bool m_EngineOn;
 
         private JoystickXRV2 m_FlightStickV2;
+        private ThrottleXRV2[] m_ThrottlesV2;
 
         public AircraftVehicle aircraft;
         private bool isInAircraft = false;
@@ -125,6 +129,12 @@ namespace Charly.FlightController {
             m_FlightStickV2 = GetComponentInChildren<JoystickXRV2>();
             if (m_FlightStickV2 != null)
                 m_FlightStickV2.OnYawInput.AddListener(OnYawInput);
+
+            // La palanca en uso es ThrottleXRV2 (manda SetThrottle por el Inspector) y el switch manda
+            // StartEngine/StopEngine. Se guardan para poder regresarlos a su posición al reiniciar.
+            m_ThrottlesV2 = GetComponentsInChildren<ThrottleXRV2>(true);
+            if (engineSwitch == null)
+                engineSwitch = GetComponentInChildren<XRSwitch>(true);
 
             Debug.Log("Controles VR configurados correctamente");
         }
@@ -196,6 +206,38 @@ namespace Charly.FlightController {
             }
 
             Debug.Log("Motor apagado");
+        }
+
+        /// <summary>
+        /// Deja la cabina como al empezar: switch de encendido abajo (eso dispara su OnSwitchOff → StopEngine y apaga
+        /// el sonido del motor) y todas las palancas de propulsión en 0. Lo usa CrashHandler al chocar y al reaparecer.
+        /// </summary>
+        public void ResetControls() {
+            // Primero se sueltan: si la mano los sigue agarrando los volvería a mover
+            // (y el switch, al soltarse, dispara su estado actual; por eso se apaga después)
+            Release(engineSwitch);
+            Release(m_FlightStickV2);
+            if (m_ThrottlesV2 != null) {
+                foreach (var throttle in m_ThrottlesV2) Release(throttle);
+            }
+
+            if (engineSwitch != null)
+                engineSwitch.SetSwitchState(false);
+            StopEngine();
+
+            if (m_ThrottlesV2 != null) {
+                foreach (var throttle in m_ThrottlesV2) {
+                    if (throttle != null) throttle.Value = 0f;
+                }
+            }
+
+            m_DirectionInput = Vector2.zero;
+            m_YawInput = 0f;
+        }
+
+        private static void Release(XRBaseInteractable interactable) {
+            if (interactable != null && interactable.isSelected && interactable.interactionManager != null)
+                interactable.interactionManager.CancelInteractableSelection((IXRSelectInteractable)interactable);
         }
         #endregion
 

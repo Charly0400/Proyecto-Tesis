@@ -5,17 +5,19 @@ public class EngineAudio : MonoBehaviour {
     [Header("Engine Components")]
     [SerializeField] private XRSwitch engineSwitch;
     [SerializeField] private ThrottleXR throttle;
+    [Tooltip("Throttle que usa la V3. Si se deja vac√≠o se busca en el mismo objeto que el ThrottleXR")]
+    [SerializeField] private ThrottleXRV2 throttleV2;
 
     [Header("Audio Sources")]
     [SerializeField] private AudioSource engineAudioSource;      // Sonidos principales del motor
-    [SerializeField] private AudioSource oneShotAudioSource;     // Sonidos de transiciÛn
+    [SerializeField] private AudioSource oneShotAudioSource;     // Sonidos de transici√≥n
 
     [Header("Engine Sound Clips")]
     public AudioClip engineStartClip;        // 1. Encendido del motor
     public AudioClip idleLoopClip;           // 2. Loop motor encendido sin acelerar
-    public AudioClip accelerationStartClip;  // 3. Comienzo de aceleraciÛn
-    public AudioClip fullThrottleLoopClip;   // 4. Loop motor a m·ximo
-    public AudioClip decelerationClip;       // 5. DesaceleraciÛn
+    public AudioClip accelerationStartClip;  // 3. Comienzo de aceleraci√≥n
+    public AudioClip fullThrottleLoopClip;   // 4. Loop motor a m√°ximo
+    public AudioClip decelerationClip;       // 5. Desaceleraci√≥n
     public AudioClip engineStopClip;         // 6. Apagado del motor
 
     [Header("Audio Settings")]
@@ -36,13 +38,16 @@ public class EngineAudio : MonoBehaviour {
     private float targetVolume = 0f;
     private float targetPitch = 1f;
     private bool isTransitioning = false;
+    private bool isStarting = false;
 
     private void Awake() {
-        // Buscar componentes si no est·n asignados
+        // Buscar componentes si no est√°n asignados
         if (engineSwitch == null) engineSwitch = GetComponent<XRSwitch>();
         if (throttle == null) throttle = GetComponent<ThrottleXR>();
+        // En la escena el ThrottleXR est√° deshabilitado y el que se mueve es el ThrottleXRV2 del mismo objeto
+        if (throttleV2 == null) throttleV2 = throttle != null ? throttle.GetComponent<ThrottleXRV2>() : GetComponent<ThrottleXRV2>();
 
-        // Configurar audio sources si no est·n asignados
+        // Configurar audio sources si no est√°n asignados
         if (engineAudioSource == null) {
             engineAudioSource = gameObject.AddComponent<AudioSource>();
             engineAudioSource.spatialBlend = 1f;
@@ -67,6 +72,10 @@ public class EngineAudio : MonoBehaviour {
             throttle.OnValueChange.AddListener(OnThrottleValueChanged);
         }
 
+        if (throttleV2 != null) {
+            throttleV2.OnValueChange.AddListener(OnThrottleValueChanged);
+        }
+
         // Configurar audio inicial
         engineAudioSource.volume = 0f;
         engineAudioSource.Stop();
@@ -81,16 +90,19 @@ public class EngineAudio : MonoBehaviour {
             engineAudioSource.pitch = Mathf.Lerp(engineAudioSource.pitch, targetPitch, Time.deltaTime * fadeSpeed);
         }
 
-        // Detectar cambio de estado de aceleraciÛn
+        // Mientras suena el encendido no se cambia de estado; al terminar se detecta el throttle actual
+        if (isStarting) return;
+
+        // Detectar cambio de estado de aceleraci√≥n
         isAccelerating = currentThrottleValue > throttleDeadZone;
 
         if (isAccelerating != wasAccelerating) {
             if (isAccelerating) {
-                // CambiÛ de IDLE a ACELERANDO
+                // Cambi√≥ de IDLE a ACELERANDO
                 StartAcceleration();
             }
             else {
-                // CambiÛ de ACELERANDO a IDLE
+                // Cambi√≥ de ACELERANDO a IDLE
                 StartDeceleration();
             }
 
@@ -104,13 +116,23 @@ public class EngineAudio : MonoBehaviour {
 
         Debug.Log("Encendiendo motor...");
         engineRunning = true;
+        CancelInvoke();
 
-        // Reproducir sonido de encendido
+        // Reproducir sonido de encendido y arrancar el idle cuando est√© por terminar (para que no se encimen)
         if (engineStartClip != null && oneShotAudioSource != null) {
             oneShotAudioSource.PlayOneShot(engineStartClip);
+            isStarting = true;
+            Invoke(nameof(FinishStartup), engineStartClip.length * 0.8f);
         }
+        else {
+            SetupIdleState();
+        }
+    }
 
-        // Configurar para estado IDLE
+    private void FinishStartup() {
+        isStarting = false;
+        if (!engineRunning) return;
+
         SetupIdleState();
     }
 
@@ -121,12 +143,16 @@ public class EngineAudio : MonoBehaviour {
         Debug.Log("Apagando motor...");
         engineRunning = false;
 
+        // Cancelar transiciones pendientes (encendido, aceleraci√≥n, desaceleraci√≥n)
+        CancelInvoke();
+
         // Detener audio del motor
         engineAudioSource.Stop();
         engineAudioSource.volume = 0f;
 
-        // Reproducir sonido de apagado
+        // Reproducir sonido de apagado (cortando el de encendido/transici√≥n si segu√≠a sonando)
         if (engineStopClip != null && oneShotAudioSource != null) {
+            oneShotAudioSource.Stop();
             oneShotAudioSource.PlayOneShot(engineStopClip);
         }
 
@@ -134,17 +160,18 @@ public class EngineAudio : MonoBehaviour {
         isAccelerating = false;
         wasAccelerating = false;
         isTransitioning = false;
+        isStarting = false;
     }
 
-    // Evento: Throttle cambiÛ
+    // Evento: Throttle cambi√≥
     private void OnThrottleValueChanged(float throttleValue) {
         currentThrottleValue = throttleValue;
 
         if (!engineRunning) return;
 
-        // Actualizar par·metros de audio seg˙n el throttle
+        // Actualizar par√°metros de audio seg√∫n el throttle
         if (isAccelerating && engineAudioSource.clip == fullThrottleLoopClip) {
-            // Ajustar volumen/pitch seg˙n throttle (solo si estamos en modo full throttle)
+            // Ajustar volumen/pitch seg√∫n throttle (solo si estamos en modo full throttle)
             float normalizedThrottle = Mathf.InverseLerp(throttleDeadZone, 1f, throttleValue);
             targetVolume = Mathf.Lerp(idleVolume, fullThrottleVolume, normalizedThrottle);
             targetPitch = Mathf.Lerp(idlePitch, fullThrottlePitch, normalizedThrottle);
@@ -166,34 +193,37 @@ public class EngineAudio : MonoBehaviour {
         isTransitioning = false;
     }
 
-    // Comenzar aceleraciÛn
+    // Comenzar aceleraci√≥n
     private void StartAcceleration() {
         if (!engineRunning) return;
 
-        Debug.Log("Comenzando aceleraciÛn...");
+        Debug.Log("Comenzando aceleraci√≥n...");
         isTransitioning = true;
 
-        // Reproducir sonido de aceleraciÛn inicial
+        // Si ven√≠a de desacelerar, que no regrese a idle despu√©s
+        CancelInvoke(nameof(SwitchToIdle));
+
+        // Reproducir sonido de aceleraci√≥n inicial
         if (accelerationStartClip != null && oneShotAudioSource != null) {
             oneShotAudioSource.PlayOneShot(accelerationStartClip);
 
-            // Cambiar a full throttle loop despuÈs de que termine la aceleraciÛn inicial
+            // Cambiar a full throttle loop despu√©s de que termine la aceleraci√≥n inicial
             Invoke(nameof(SwitchToFullThrottle), accelerationStartClip.length * 0.8f);
         }
         else {
-            // Si no hay clip de aceleraciÛn, cambiar inmediatamente
+            // Si no hay clip de aceleraci√≥n, cambiar inmediatamente
             SwitchToFullThrottle();
         }
     }
 
-    // Cambiar a loop de throttle m·ximo
+    // Cambiar a loop de throttle m√°ximo
     private void SwitchToFullThrottle() {
         if (!engineRunning) return;
 
         if (fullThrottleLoopClip != null) {
             engineAudioSource.clip = fullThrottleLoopClip;
 
-            // Configurar volumen/pitch seg˙n throttle actual
+            // Configurar volumen/pitch seg√∫n throttle actual
             float normalizedThrottle = Mathf.InverseLerp(throttleDeadZone, 1f, currentThrottleValue);
             targetVolume = Mathf.Lerp(idleVolume, fullThrottleVolume, normalizedThrottle);
             targetPitch = Mathf.Lerp(idlePitch, fullThrottlePitch, normalizedThrottle);
@@ -206,22 +236,25 @@ public class EngineAudio : MonoBehaviour {
         isTransitioning = false;
     }
 
-    // Comenzar desaceleraciÛn
+    // Comenzar desaceleraci√≥n
     private void StartDeceleration() {
         if (!engineRunning) return;
 
-        Debug.Log("Comenzando desaceleraciÛn...");
+        Debug.Log("Comenzando desaceleraci√≥n...");
         isTransitioning = true;
 
-        // Reproducir sonido de desaceleraciÛn
+        // Si ven√≠a de acelerar, que no cambie a full throttle despu√©s
+        CancelInvoke(nameof(SwitchToFullThrottle));
+
+        // Reproducir sonido de desaceleraci√≥n
         if (decelerationClip != null && oneShotAudioSource != null) {
             oneShotAudioSource.PlayOneShot(decelerationClip);
 
-            // Volver a idle despuÈs de que termine la desaceleraciÛn
+            // Volver a idle despu√©s de que termine la desaceleraci√≥n
             Invoke(nameof(SwitchToIdle), decelerationClip.length * 0.8f);
         }
         else {
-            // Si no hay clip de desaceleraciÛn, cambiar inmediatamente
+            // Si no hay clip de desaceleraci√≥n, cambiar inmediatamente
             SwitchToIdle();
         }
     }
@@ -233,7 +266,7 @@ public class EngineAudio : MonoBehaviour {
         SetupIdleState();
     }
 
-    // MÈtodos p˙blicos para control manual (opcional)
+    // M√©todos p√∫blicos para control manual (opcional)
     public void StartEngine() {
         OnEngineSwitchOn();
     }
@@ -255,6 +288,10 @@ public class EngineAudio : MonoBehaviour {
 
         if (throttle != null) {
             throttle.OnValueChange.RemoveListener(OnThrottleValueChanged);
+        }
+
+        if (throttleV2 != null) {
+            throttleV2.OnValueChange.RemoveListener(OnThrottleValueChanged);
         }
     }
 }

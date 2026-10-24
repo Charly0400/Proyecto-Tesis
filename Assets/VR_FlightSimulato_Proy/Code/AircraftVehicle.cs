@@ -55,6 +55,11 @@ public class AircraftVehicle : MonoBehaviour {
         if (physics != null) physics.RefreshIgnoredCollisions();
 
         isPlayerSeated = true;
+
+        // Dejar la cabeza en el punto de vista del piloto, mirando al frente del avión
+        var recentrado = GetComponent<CockpitViewRecenter>();
+        if (recentrado != null) recentrado.Recentrar();
+
         ToggleButtonCanva();
         Debug.Log("Jugador anclado al asiento del piloto");
     }

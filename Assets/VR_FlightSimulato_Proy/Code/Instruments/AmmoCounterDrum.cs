@@ -13,7 +13,7 @@ namespace Charly.FlightController.Instruments {
         [Tooltip("Arma cuya munición se muestra. Si se deja vacío se busca en el avión")]
         [SerializeField] private AircraftGun m_gun;
 
-        [Header("Rodillos 3D")]
+        [Header("Ametralladoras")]
         [Tooltip("De DERECHA a IZQUIERDA: unidades, decenas, centenas, millares... El pivote de cada uno debe estar en su centro")]
         [SerializeField] private Transform[] m_drumMeshes;
         [Tooltip("Eje LOCAL sobre el que gira cada rodillo (el cilindro de ProBuilder se crea a lo largo de Y)")]

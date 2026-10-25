@@ -1,0 +1,918 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Manual de vuelo</title>
+<!--
+  Diapositivas de instrucciones del simulador (1080 x 1920, formato teléfono).
+  Abrir normal = todas en columna para revisar.  instrucciones.html#5 = solo la diapositiva 5 (lo usa exportar.ps1).
+-->
+<style>
+  :root {
+    --bg: #0a1120;
+    --bg2: #0f1a2e;
+    --card: #142238;
+    --card2: #1a2c47;
+    --line: #2a3f60;
+    --text: #eef3fb;
+    --muted: #9fb0c8;
+    --amber: #ffb020;
+    --cyan: #3fd3ea;
+    --green: #4ade80;
+    --red: #ff5a5a;
+    --sky: #3a8fd6;
+    --earth: #8a5a2b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #05080f; }
+  body { font-family: "Segoe UI", system-ui, sans-serif; color: var(--text); }
+
+  .slide {
+    width: 1080px; height: 1920px; position: relative; overflow: hidden;
+    margin: 0 auto 40px;
+    background:
+      radial-gradient(1200px 800px at 85% -10%, rgba(63,211,234,.10), transparent 60%),
+      radial-gradient(900px 700px at -10% 110%, rgba(255,176,32,.08), transparent 60%),
+      linear-gradient(180deg, var(--bg2), var(--bg));
+    padding: 90px 80px 80px;
+    display: flex; flex-direction: column;
+  }
+  /* rejilla tenue tipo pantalla de cabina */
+  .slide::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+  .slide > * { position: relative; }
+
+  body.single { background: var(--bg); }
+  body.single .slide { display: none; margin: 0; }
+  body.single .slide.active { display: flex; }
+
+  /* encabezado */
+  .top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 26px; }
+  .tag {
+    font-family: Bahnschrift, "Segoe UI", sans-serif; font-weight: 600; letter-spacing: 6px;
+    font-size: 32px; color: var(--amber); text-transform: uppercase;
+  }
+  .num { font-family: Bahnschrift, "Segoe UI", sans-serif; font-size: 32px; color: var(--muted); letter-spacing: 3px; }
+  .num b { color: var(--text); font-weight: 600; }
+  .progress { display: flex; gap: 8px; margin-bottom: 56px; }
+  .progress i { flex: 1; height: 8px; border-radius: 4px; background: var(--line); }
+  .progress i.on { background: var(--amber); }
+
+  h1 {
+    font-family: Bahnschrift, "Segoe UI", sans-serif; font-weight: 700;
+    font-size: 104px; line-height: 1.0; letter-spacing: 1px; margin-bottom: 26px;
+  }
+  .lead { font-size: 46px; line-height: 1.3; color: var(--muted); margin-bottom: 44px; }
+  .lead b { color: var(--text); }
+
+  .art {
+    background: var(--card); border: 2px solid var(--line); border-radius: 40px;
+    display: flex; align-items: center; justify-content: center;
+    padding: 30px; margin-bottom: 44px;
+  }
+  .art svg { width: 100%; height: auto; display: block; }
+
+  /* lista de pasos */
+  .steps { list-style: none; display: flex; flex-direction: column; gap: 26px; margin-bottom: 40px; }
+  .steps li { display: flex; gap: 30px; align-items: flex-start; font-size: 44px; line-height: 1.28; }
+  .steps li .n {
+    flex: 0 0 76px; height: 76px; border-radius: 50%;
+    background: var(--amber); color: #1a1205;
+    font-family: Bahnschrift, "Segoe UI", sans-serif; font-weight: 700; font-size: 44px;
+    display: flex; align-items: center; justify-content: center; margin-top: -6px;
+  }
+  .steps li b, .rows b { color: var(--amber); font-weight: 600; }
+
+  /* filas "control → acción" */
+  .rows { display: flex; flex-direction: column; gap: 20px; margin-bottom: 40px; }
+  .row {
+    display: flex; align-items: center; gap: 30px;
+    background: var(--card); border: 2px solid var(--line); border-radius: 30px; padding: 26px 32px;
+  }
+  .row .k {
+    flex: 0 0 270px; text-align: center; white-space: nowrap;
+    font-family: Bahnschrift, "Segoe UI", sans-serif; font-weight: 700; font-size: 36px; letter-spacing: 1px;
+    color: #06121a; background: var(--cyan); border-radius: 18px; padding: 14px 18px;
+  }
+  .row .k.amber { background: var(--amber); color: #1a1205; }
+  .row .k.green { background: var(--green); color: #06180d; }
+  .row .k.red { background: var(--red); color: #200606; }
+  .row .v { font-size: 40px; line-height: 1.25; }
+  .row .v small { display: block; font-size: 32px; color: var(--muted); margin-top: 4px; }
+
+  /* nota inferior */
+  .tip {
+    margin-top: auto; display: flex; gap: 28px; align-items: flex-start;
+    background: rgba(255,176,32,.10); border: 2px solid rgba(255,176,32,.45);
+    border-radius: 30px; padding: 30px 36px; font-size: 38px; line-height: 1.3;
+  }
+  .tip .ic {
+    flex: 0 0 auto; font-family: Bahnschrift, "Segoe UI", sans-serif; font-weight: 700;
+    font-size: 32px; letter-spacing: 3px; color: #1a1205; background: var(--amber);
+    border-radius: 14px; padding: 8px 16px; margin-top: 2px;
+  }
+  .tip.warn { background: rgba(255,90,90,.10); border-color: rgba(255,90,90,.5); }
+  .tip.warn .ic { background: var(--red); color: #200606; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .mini {
+    background: var(--card); border: 2px solid var(--line); border-radius: 30px; padding: 22px 24px 28px;
+    text-align: center;
+  }
+  .mini svg { width: 100%; height: 190px; display: block; margin-bottom: 10px; }
+  .mini .t { font-family: Bahnschrift, "Segoe UI", sans-serif; font-weight: 700; font-size: 40px; color: var(--amber); }
+  .mini .d { font-size: 34px; color: var(--muted); line-height: 1.25; margin-top: 4px; }
+
+  /* portada */
+  .cover { justify-content: flex-start; }
+  .cover .brand { font-family: Bahnschrift, "Segoe UI", sans-serif; letter-spacing: 10px; color: var(--amber); font-size: 36px; font-weight: 600; margin-top: 30px; }
+  .cover h1 { font-size: 150px; line-height: .95; margin: 24px 0 30px; }
+  .cover .idx { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 30px; }
+  .cover .idx div {
+    font-size: 36px; color: var(--muted); padding: 16px 0; border-bottom: 2px solid var(--line);
+    display: flex; gap: 18px; align-items: baseline;
+  }
+  .cover .idx div b { font-family: Bahnschrift, "Segoe UI", sans-serif; color: var(--amber); font-weight: 600; font-size: 32px; }
+
+  svg text { font-family: Bahnschrift, "Segoe UI", sans-serif; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ 01 PORTADA ═══════════════ -->
+<section class="slide cover">
+  <div class="top"><span class="tag">Simulador VR</span><span class="num"><b>01</b> / 19</span></div>
+  <div class="progress"></div>
+  <div class="art" style="padding:40px 30px; margin-bottom:20px">
+    <svg viewBox="0 0 900 470">
+      <defs>
+        <linearGradient id="cv-sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#1d4f86"/><stop offset="1" stop-color="#3fd3ea" stop-opacity=".35"/>
+        </linearGradient>
+      </defs>
+      <rect x="0" y="0" width="900" height="470" rx="26" fill="url(#cv-sky)"/>
+      <path d="M0 380 L160 300 L300 350 L470 270 L640 340 L780 290 L900 330 L900 470 L0 470 Z" fill="#14324f"/>
+      <path d="M0 420 L220 370 L420 410 L620 360 L900 400 L900 470 L0 470 Z" fill="#0f2238"/>
+      <!-- avión vista superior -->
+      <g transform="translate(450 200) rotate(-12)">
+        <path d="M0 -150 C 14 -150 20 -128 20 -100 L 20 -30 L 250 10 L 250 38 L 20 30 L 16 110 L 80 128 L 80 148 L 0 140 L -80 148 L -80 128 L -16 110 L -20 30 L -250 38 L -250 10 L -20 -30 L -20 -100 C -20 -128 -14 -150 0 -150 Z"
+              fill="#eef3fb" stroke="#0a1120" stroke-width="4"/>
+        <ellipse cx="0" cy="-70" rx="10" ry="26" fill="#3fd3ea"/>
+        <rect x="-26" y="-158" width="52" height="8" rx="4" fill="#ffb020"/>
+      </g>
+      <path d="M90 120 h120 M60 160 h90 M720 90 h110 M760 130 h80" stroke="#eef3fb" stroke-opacity=".45" stroke-width="6" stroke-linecap="round"/>
+    </svg>
+  </div>
+  <div class="brand">GUÍA DEL PILOTO</div>
+  <h1>Manual<br>de vuelo</h1>
+  <p class="lead">Desliza para aprender a <b>controlar el avión</b>, leer los <b>instrumentos</b> y volar sin estrellarte.</p>
+  <div class="idx">
+    <div><b>02</b>Controles VR</div>
+    <div><b>09</b>Instrumentos</div>
+    <div><b>03</b>Subir al avión</div>
+    <div><b>14</b>Despegue</div>
+    <div><b>04</b>Motor y palancas</div>
+    <div><b>15</b>Aterrizaje</div>
+    <div><b>08</b>Frenos</div>
+    <div><b>17</b>Ametralladora</div>
+  </div>
+</section>
+
+<!-- ═══════════════ 02 CONTROLES VR ═══════════════ -->
+<section class="slide">
+  <div class="top"><span class="tag">Lo básico</span><span class="num"><b>02</b> / 19</span></div>
+  <div class="progress"></div>
+  <h1>Tus mandos</h1>
+  <p class="lead">Todo en la cabina se usa <b>con las manos</b>: acércate, aprieta el grip y mueve.</p>
+  <div class="art" style="padding:20px 20px 10px">
+    <svg viewBox="0 0 900 560">
+      <!-- mando izquierdo -->
+      <g transform="translate(240 0)">
+        <rect x="-62" y="250" width="124" height="270" rx="62" fill="#1a2c47" stroke="#4a6283" stroke-width="5"/>
+        <rect x="-62" y="290" width="40" height="170" rx="20" fill="#3fd3ea" opacity=".9"/>
+        <circle cx="0" cy="190" r="150" fill="#1a2c47" stroke="#4a6283" stroke-width="5"/>
+        <circle cx="0" cy="190" r="118" fill="none" stroke="#4a6283" stroke-width="3" stroke-dasharray="6 10"/>
+        <circle cx="-30" cy="170" r="44" fill="#0a1120" stroke="#ffb020" stroke-width="6"/>
+        <circle cx="-30" cy="170" r="22" fill="#ffb020"/>
+        <circle cx="52" cy="140" r="26" fill="#0a1120" stroke="#3fd3ea" stroke-width="5"/>
+        <text x="52" y="150" text-anchor="middle" font-size="30" font-weight="700" fill="#3fd3ea">Y</text>
+        <circle cx="58" cy="216" r="26" fill="#0a1120" stroke="#4a6283" stroke-width="5"/>
+        <text x="58" y="226" text-anchor="middle" font-size="30" font-weight="700" fill="#9fb0c8">X</text>
+        <path d="M-40 34 Q 0 10 40 34 L 34 60 Q 0 44 -34 60 Z" fill="#4ade80"/>
+        <text x="0" y="548" text-anchor="middle" font-size="34" font-weight="600" fill="#9fb0c8" letter-spacing="4">IZQUIERDO</text>
+      </g>
+      <!-- mando derecho -->
+      <g transform="translate(660 0)">
+        <rect x="-62" y="250" width="124" height="270" rx="62" fill="#1a2c47" stroke="#4a6283" stroke-width="5"/>
+        <rect x="22" y="290" width="40" height="170" rx="20" fill="#3fd3ea" opacity=".9"/>
+        <circle cx="0" cy="190" r="150" fill="#1a2c47" stroke="#4a6283" stroke-width="5"/>
+        <circle cx="0" cy="190" r="118" fill="none" stroke="#4a6283" stroke-width="3" stroke-dasharray="6 10"/>
+        <circle cx="30" cy="170" r="44" fill="#0a1120" stroke="#9fb0c8" stroke-width="6"/>
+        <circle cx="30" cy="170" r="22" fill="#9fb0c8"/>
+        <circle cx="-52" cy="140" r="26" fill="#0a1120" stroke="#3fd3ea" stroke-width="5"/>
+        <text x="-52" y="150" text-anchor="middle" font-size="30" font-weight="700" fill="#3fd3ea">B</text>
+        <circle cx="-58" cy="216" r="26" fill="#0a1120" stroke="#4a6283" stroke-width="5"/>
+        <text x="-58" y="226" text-anchor="middle" font-size="30" font-weight="700" fill="#9fb0c8">A</text>
+        <path d="M-40 34 Q 0 10 40 34 L 34 60 Q 0 44 -34 60 Z" fill="#ff5a5a"/>
+        <text x="0" y="548" text-anchor="middle" font-size="34" font-weight="600" fill="#9fb0c8" letter-spacing="4">DERECHO</text>
+      </g>
+      <!-- etiquetas -->
+      <g font-size="28" font-weight="700" letter-spacing="2">
+        <text x="450" y="52" text-anchor="middle" fill="#eef3fb">GATILLOS</text>
+        <path d="M335 44 H290 M565 44 H610" stroke="#eef3fb" stroke-width="3"/>
+        <text x="450" y="390" text-anchor="middle" fill="#3fd3ea">GRIP</text>
+        <path d="M398 380 H190 M502 380 H710" stroke="#3fd3ea" stroke-width="3"/>
+      </g>
+    </svg>
+  </div>
+  <div class="rows">
+    <div class="row"><span class="k">GRIP</span><span class="v">Agarrar joystick, acelerador, switch y cabina<small>Mantenlo apretado mientras mueves</small></span></div>
+    <div class="row"><span class="k red">GATILLO</span><span class="v">Disparar<small>Solo mientras sujetas el joystick</small></span></div>
+    <div class="row"><span class="k amber">STICK IZQ.</span><span class="v">Fuera: caminar · Sentado: frenar</span></div>
+    <div class="row"><span class="k green">B / Y</span><span class="v">Recentrar la vista en la cabina</span></div>
+  </div>
+</section>
+
+<!-- ═══════════════ 03 SUBIR Y BAJAR ═══════════════ -->
+<section class="slide">
+  <div class="top"><span class="tag">Lo básico</span><span class="num"><b>03</b> / 19</span></div>
+  <div class="progress"></div>
+  <h1>Subir y bajar del avión</h1>
+  <div class="art">
+    <svg viewBox="0 0 900 470">
+      <!-- avión de lado -->
+      <path d="M60 300 L130 300 L130 230 L170 230 L210 290 L560 285 C 640 280 700 268 740 262 L760 262 L760 330 L740 330 C 700 332 620 336 560 338 L210 344 Z" fill="#eef3fb"/>
+      <path d="M470 286 C 500 230 560 222 600 238 L 630 282 Z" fill="#3fd3ea" opacity=".85" stroke="#0a1120" stroke-width="4"/>
+      <rect x="330" y="300" width="250" height="22" rx="11" fill="#9fb0c8"/>
+      <rect x="760" y="250" width="18" height="96" rx="9" fill="#ffb020"/>
+      <path d="M560 344 L540 395 M 330 344 L 350 395" stroke="#9fb0c8" stroke-width="10"/>
+      <circle cx="540" cy="405" r="22" fill="#0a1120" stroke="#9fb0c8" stroke-width="6"/>
+      <circle cx="352" cy="405" r="22" fill="#0a1120" stroke="#9fb0c8" stroke-width="6"/>
+      <path d="M30 430 H870" stroke="#2a3f60" stroke-width="6"/>
+      <!-- botón flotante -->
+      <rect x="360" y="40" width="300" height="110" rx="24" fill="#142238" stroke="#4ade80" stroke-width="6"/>
+      <text x="510" y="112" text-anchor="middle" font-size="50" font-weight="700" fill="#4ade80" letter-spacing="3">SUBIR</text>
+      <path d="M510 150 L 540 230" stroke="#4ade80" stroke-width="4" stroke-dasharray="8 8"/>
+      <!-- rayo de la mano -->
+      <path d="M110 130 L 360 98" stroke="#3fd3ea" stroke-width="6" stroke-linecap="round"/>
+      <circle cx="360" cy="98" r="12" fill="#3fd3ea"/>
+      <rect x="40" y="110" width="90" height="56" rx="26" fill="#1a2c47" stroke="#4a6283" stroke-width="4"/>
+    </svg>
+  </div>
+  <ol class="steps">
+    <li><span class="n">1</span><span>Camina hasta el avión y <b>apunta al botón</b> que flota junto a la cabina.</span></li>
+    <li><span class="n">2</span><span>Presiona el <b>gatillo</b>: te sientas y la vista queda mirando al frente.</span></li>
+    <li><span class="n">3</span><span>Para <b>bajar</b>: agarra la cabina con el grip y <b>deslízala hasta abrirla</b> por completo. Aparecerá el botón para salir.</span></li>
+  </ol>
+  <div class="tip"><span class="ic">TIP</span><span>Si la vista queda chueca, presiona <b>B</b> o <b>Y</b> para recentrarla.</span></div>
+</section>
+
+<!-- ═══════════════ 04 MOTOR ═══════════════ -->
+<section class="slide">
+  <div class="top"><span class="tag">Cabina</span><span class="num"><b>04</b> / 19</span></div>
+  <div class="progress"></div>
+  <h1>Encender el motor</h1>
+  <p class="lead">Sin motor el acelerador <b>no hace nada</b>. Es lo primero que debes hacer.</p>
+  <div class="art">
+    <svg viewBox="0 0 900 520">
+      <!-- switch -->
+      <rect x="130" y="60" width="300" height="400" rx="36" fill="#1a2c47" stroke="#4a6283" stroke-width="5"/>
+      <text x="280" y="122" text-anchor="middle" font-size="52" font-weight="700" fill="#4ade80" letter-spacing="4">ON</text>
+      <text x="280" y="430" text-anchor="middle" font-size="52" font-weight="700" fill="#ff5a5a" letter-spacing="4">OFF</text>
+      <circle cx="280" cy="260" r="56" fill="#0a1120" stroke="#4a6283" stroke-width="5"/>
+      <path d="M262 260 L 248 150 L 312 150 L 298 260 Z" fill="#c9d5e6"/>
+      <rect x="236" y="130" width="88" height="36" rx="18" fill="#eef3fb"/>
+      <path d="M470 330 L 470 170" stroke="#4ade80" stroke-width="10" stroke-linecap="round"/>
+      <path d="M440 200 L 470 160 L 500 200" fill="none" stroke="#4ade80" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- botón reset -->
+      <rect x="580" y="170" width="220" height="220" rx="34" fill="#1a2c47" stroke="#4a6283" stroke-width="5"/>
+      <circle cx="690" cy="270" r="74" fill="#ff5a5a" stroke="#200606" stroke-width="6"/>
+      <text x="690" y="284" text-anchor="middle" font-size="38" font-weight="700" fill="#200606">RESET</text>
+      <text x="690" y="440" text-anchor="middle" font-size="32" fill="#9fb0c8">Reinicia el nivel</text>
+    </svg>
+  </div>
+  <div class="rows">
+    <div class="row"><span class="k green">ON ▲</span><span class="v">Agarra el switch con el grip y <b>súbelo</b>: el motor arranca</span></div>
+    <div class="row"><span class="k red">OFF ▼</span><span class="v">Bájalo para apagar<small>El acelerador regresa a 0 solo</small></span></div>
+    <div class="row"><span class="k amber">RESET</span><span class="v">Empieza todo de nuevo desde la pista</span></div>
+  </div>
+</section>
+
+<!-- ═══════════════ 05 ACELERADOR ═══════════════ -->
+<section class="slide">
+  <div class="top"><span class="tag">Cabina</span><span class="num"><b>05</b> / 19</span></div>
+  <div class="progress"></div>
+  <h1>Acelerador</h1>
+  <p class="lead">La palanca de potencia. Controla <b>qué tan rápido</b> vas.</p>
+  <div class="art">
+    <svg viewBox="0 0 900 520">
+      <!-- riel -->
+      <rect x="120" y="330" width="660" height="60" rx="30" fill="#0a1120" stroke="#4a6283" stroke-width="5"/>
+      <g font-size="30" fill="#9fb0c8" text-anchor="middle">
+        <text x="160" y="450">0%</text><text x="450" y="450">50%</text><text x="740" y="450">100%</text>
+      </g>
+      <path d="M160 405 v18 M305 405 v12 M450 405 v18 M595 405 v12 M740 405 v18" stroke="#4a6283" stroke-width="5"/>
+      <rect x="150" y="342" width="430" height="36" rx="18" fill="#ffb020" opacity=".35"/>
+      <!-- palanca -->
+      <path d="M560 360 L 600 150" stroke="#c9d5e6" stroke-width="26" stroke-linecap="round"/>
+      <rect x="548" y="96" width="120" height="80" rx="30" fill="#ffb020" transform="rotate(10 608 136)"/>
+      <!-- flechas -->
+      <g stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none">
+        <path d="M690 230 H 820" stroke="#4ade80"/><path d="M790 200 L 825 230 L 790 260" stroke="#4ade80"/>
+        <path d="M430 230 H 300" stroke="#ff5a5a"/><path d="M330 200 L 295 230 L 330 260" stroke="#ff5a5a"/>
+      </g>
+      <text x="760" y="180" text-anchor="middle" font-size="34" font-weight="700" fill="#4ade80">MÁS</text>
+      <text x="360" y="180" text-anchor="middle" font-size="34" font-weight="700" fill="#ff5a5a">MENOS</text>
+      <text x="160" y="80" font-size="32" fill="#9fb0c8">FRENTE DEL AVIÓN →</text>
+    </svg>
+  </div>
+  <ol class="steps">
+    <li><span class="n">1</span><span>Agarra la palanca con el <b>grip</b>.</span></li>
+    <li><span class="n">2</span><span><b>Empújala hacia adelante</b> para más potencia; jálala hacia ti para menos.</span></li>
+    <li><span class="n">3</span><span>Suelta el grip: la palanca <b>se queda donde la dejaste</b>.</span></li>
+  </ol>
+  <div class="tip"><span class="ic">TIP</span><span>El motor tarda <b>un momento</b> en responder: no hace falta mover la palanca de golpe.</span></div>
+</section>
+
+<!-- ═══════════════ 06 JOYSTICK ═══════════════ -->
+<section class="slide">
+  <div class="top"><span class="tag">Cabina</span><span class="num"><b>06</b> / 19</span></div>
+  <div class="progress"></div>
+  <h1>Joystick</h1>
+  <p class="lead">Agárralo con el grip y <b>mueve la mano</b>. Al soltarlo regresa al centro.</p>
+  <div class="grid2" style="margin-bottom:34px">
+    <div class="mini">
+      <svg viewBox="0 0 300 190">
+        <path d="M20 130 H280" stroke="#2a3f60" stroke-width="4" stroke-dasharray="10 10"/>
+        <g transform="translate(150 100) rotate(18)">
+          <path d="M-110 0 C -90 -16 70 -16 110 -4 L 110 8 C 70 16 -90 16 -110 0 Z" fill="#eef3fb"/>
+          <path d="M-110 0 L -120 -36 L -96 -36 L -80 -6 Z" fill="#eef3fb"/>
+          <ellipse cx="20" cy="-10" rx="26" ry="10" fill="#3fd3ea"/>
+        </g>
+        <path d="M250 40 v40" stroke="#ffb020" stroke-width="8" stroke-linecap="round"/><path d="M234 66 l16 18 l16 -18" fill="none" stroke="#ffb020" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="t">Empujar ▲</div><div class="d">Baja el morro</div>
+    </div>
+    <div class="mini">
+      <svg viewBox="0 0 300 190">
+        <path d="M20 130 H280" stroke="#2a3f60" stroke-width="4" stroke-dasharray="10 10"/>
+        <g transform="translate(150 100) rotate(-18)">
+          <path d="M-110 0 C -90 -16 70 -16 110 -4 L 110 8 C 70 16 -90 16 -110 0 Z" fill="#eef3fb"/>
+          <path d="M-110 0 L -120 -36 L -96 -36 L -80 -6 Z" fill="#eef3fb"/>
+          <ellipse cx="20" cy="-10" rx="26" ry="10" fill="#3fd3ea"/>
+        </g>
+        <path d="M250 84 v-40" stroke="#ffb020" stroke-width="8" stroke-linecap="round"/><path d="M234 58 l16 -18 l16 18" fill="none" stroke="#ffb020" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="t">Jalar ▼</div><div class="d">Sube el morro</div>
+    </div>
+    <div class="mini">
+      <svg viewBox="0 0 300 190">
+        <g transform="translate(150 100) rotate(-22)">
+          <rect x="-130" y="-6" width="260" height="14" rx="7" fill="#eef3fb"/>
+          <circle cx="0" cy="0" r="26" fill="#eef3fb"/><circle cx="0" cy="0" r="12" fill="#3fd3ea"/>
+          <path d="M-4 -26 L -4 -60 L 4 -60 L 4 -26 Z" fill="#eef3fb"/>
+        </g>
+        <path d="M60 40 A 110 110 0 0 0 30 110" fill="none" stroke="#ffb020" stroke-width="8" stroke-linecap="round"/>
+        <path d="M16 92 l14 20 l18 -16" fill="none" stroke="#ffb020" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="t">◄ Izquierda</div><div class="d">Inclina a la izquierda</div>
+    </div>
+    <div class="mini">
+      <svg viewBox="0 0 300 190">
+        <g transform="translate(150 100) rotate(22)">
+          <rect x="-130" y="-6" width="260" height="14" rx="7" fill="#eef3fb"/>
+          <circle cx="0" cy="0" r="26" fill="#eef3fb"/><circle cx="0" cy="0" r="12" fill="#3fd3ea"/>
+          <path d="M-4 -26 L -4 -60 L 4 -60 L 4 -26 Z" fill="#eef3fb"/>
+        </g>
+        <path d="M240 40 A 110 110 0 0 1 270 110" fill="none" stroke="#ffb020" stroke-width="8" stroke-linecap="round"/>
+        <path d="M284 92 l-14 20 l-18 -16" fill="none" stroke="#ffb020" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="t">Derecha ►</div><div class="d">Inclina a la derecha</div>
+    </div>
+  </div>
+  <ol class="steps">
+    <li><span class="n">1</span><span>Para <b>girar</b> en el aire: inclina hacia un lado y <b>jala un poco</b>.</span></li>
+    <li><span class="n">2</span><span>Para dejar de girar: regresa al centro y nivela las alas.</span></li>
+  </ol>
+  <div class="tip"><span class="ic">TIP</span><span>Movimientos <b>pequeños y suaves</b>. A poca velocidad los controles responden menos.</span></div>
+</section>
+
+<!-- ═══════════════ 07 TIMÓN ═══════════════ -->
+<section class="slide">
+  <div class="top"><span class="tag">Cabina</span><span class="num"><b>07</b> / 19</span></div>
+  <div class="progress"></div>
+  <h1>Timón</h1>
+  <p class="lead">Con el joystick agarrado, <b>gira la muñeca</b> como una perilla para mover la nariz a los lados.</p>
+  <div class="art">
+    <svg viewBox="0 0 900 560">
+      <!-- avión vista superior -->
+      <g transform="translate(450 300)">
+        <g opacity=".25" transform="rotate(-20)">
+          <path d="M0 -170 C 14 -170 20 -146 20 -116 L 20 -40 L 230 -6 L 230 22 L 20 18 L 16 110 L 80 126 L 80 144 L 0 136 L -80 144 L -80 126 L -16 110 L -20 18 L -230 22 L -230 -6 L -20 -40 L -20 -116 C -20 -146 -14 -170 0 -170 Z" fill="#eef3fb"/>
+        </g>
+        <g opacity=".25" transform="rotate(20)">
+          <path d="M0 -170 C 14 -170 20 -146 20 -116 L 20 -40 L 230 -6 L 230 22 L 20 18 L 16 110 L 80 126 L 80 144 L 0 136 L -80 144 L -80 126 L -16 110 L -20 18 L -230 22 L -230 -6 L -20 -40 L -20 -116 C -20 -146 -14 -170 0 -170 Z" fill="#eef3fb"/>
+        </g>
+        <path d="M0 -170 C 14 -170 20 -146 20 -116 L 20 -40 L 230 -6 L 230 22 L 20 18 L 16 110 L 80 126 L 80 144 L 0 136 L -80 144 L -80 126 L -16 110 L -20 18 L -230 22 L -230 -6 L -20 -40 L -20 -116 C -20 -146 -14 -170 0 -170 Z" fill="#eef3fb"/>
+        <ellipse cx="0" cy="-80" rx="10" ry="26" fill="#3fd3ea"/>
+        <path d="M0 116 L 0 150" stroke="#ffb020" stroke-width="10" stroke-linecap="round"/>
+      </g>
+      <!-- flechas de giro -->
+      <g fill="none" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M330 90 A 230 230 0 0 1 570 90" stroke="#ffb020"/>
+        <path d="M352 62 L 326 92 L 362 108" stroke="#ffb020"/>
+        <path d="M548 62 L 574 92 L 538 108" stroke="#ffb020"/>
+      </g>
+      <text x="230" y="80" text-anchor="middle" font-size="36" font-weight="700" fill="#ffb020">◄ IZQ.</text>
+      <text x="670" y="80" text-anchor="middle" font-size="36" font-weight="700" fill="#ffb020">DER. ►</text>
+      <!-- mano/perilla -->
+      <g transform="translate(130 430)">
+        <circle r="70" fill="#1a2c47" stroke="#4a6283" stroke-width="5"/>
+        <rect x="-10" y="-62" width="20" height="44" rx="10" fill="#ffb020"/>
+        <path d="M-90 -40 A 100 100 0 0 1 90 -40" fill="none" stroke="#3fd3ea" stroke-width="6" stroke-dasharray="10 10"/>
+      </g>
+      <text x="130" y="545" text-anchor="middle" font-size="28" fill="#9fb0c8">MUÑECA</text>
+    </svg>
+  </div>
+  <div class="rows">
+    <div class="row"><span class="k">EN TIERRA</span><span class="v">Es el volante: gira la rueda de cola<small>Solo funciona rodando, no parado</small></span></div>
+    <div class="row"><span class="k amber">EN EL AIRE</span><span class="v">Corrige la dirección sin inclinar las alas</span></div>
+  </div>
+  <div class="tip"><span class="ic">TIP</span><span>Hay una pequeña zona muerta: un giro leve de la muñeca <b>no mueve nada</b>.</span></div>
+</section>
+
+<!-- ═══════════════ 08 FRENOS ═══════════════ -->
+<section class="slide">
+  <div class="top"><span class="tag">En tierra</span><span class="num"><b>08</b> / 19</span></div>
+  <div class="progress"></div>
+  <h1>Frenos y rodaje</h1>
+  <p class="lead">Ya sentado, el <b>stick izquierdo</b> controla los frenos de las ruedas.</p>
+  <div class="art">
+    <svg viewBox="0 0 900 520">
+      <!-- stick -->
+      <g transform="translate(240 260)">
+        <circle r="170" fill="#1a2c47" stroke="#4a6283" stroke-width="5"/>
+        <circle r="70" fill="#0a1120" stroke="#ffb020" stroke-width="8"/>
+        <circle r="34" fill="#ffb020"/>
+        <g fill="none" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M0 90 V 150" stroke="#ff5a5a"/><path d="M-22 128 L 0 152 L 22 128" stroke="#ff5a5a"/>
+          <path d="M-90 0 H -150" stroke="#3fd3ea"/><path d="M-128 -22 L -152 0 L -128 22" stroke="#3fd3ea"/>
+          <path d="M90 0 H 150" stroke="#3fd3ea"/><path d="M128 -22 L 152 0 L 128 22" stroke="#3fd3ea"/>
+        </g>
+      </g>
+      <text x="240" y="490" text-anchor="middle" font-size="32" font-weight="700" fill="#ff5a5a">ABAJO = FRENAR</text>
+      <!-- avión superior con ruedas -->
+      <g transform="translate(650 270)">
+        <path d="M0 -190 C 12 -190 18 -168 18 -140 L 18 -60 L 200 -30 L 200 -6 L 18 -4 L 14 110 L 70 124 L 70 140 L 0 132 L -70 140 L -70 124 L -14 110 L -18 -4 L -200 -6 L -200 -30 L -18 -60 L -18 -140 C -18 -168 -12 -190 0 -190 Z" fill="#eef3fb" opacity=".9"/>
+        <rect x="-74" y="-76" width="26" height="54" rx="10" fill="#3fd3ea"/>
+        <rect x="48" y="-76" width="26" height="54" rx="10" fill="#3fd3ea"/>
+        <circle cx="0" cy="150" r="13" fill="#ffb020"/>
+        <text x="-110" y="40" text-anchor="middle" font-size="30" font-weight="700" fill="#3fd3ea">IZQ</text>
+        <text x="110" y="40" text-anchor="middle" font-size="30" font-weight="700" fill="#3fd3ea">DER</text>
+      </g>
+    </svg>
+  </div>
+  <div class="rows">
+    <div class="row"><span class="k red">▼ ABAJO</span><span class="v">Frena <b>ambas</b> ruedas<small>Mientras más empujes, más fuerte</small></span></div>
+    <div class="row"><span class="k">◄ / ►</span><span class="v">Frena una sola rueda<small>Ayuda a girar en tierra hacia ese lado</small></span></div>
+  </div>
+  <div class="tip"><span class="ic">TIP</span><span>Para girar en la pista combina el <b>timón (muñeca)</b> con el freno de un lado, a baja velocidad.</span></div>
+</section>
+
+<!-- ═══════════════ 09 VELOCÍMETRO ═══════════════ -->
+<section class="slide">
+  <div class="top"><span class="tag">Instrumentos</span><span class="num"><b>09</b> / 19</span></div>
+  <div class="progress"></div>
+  <h1>Velocímetro</h1>
+  <p class="lead">Qué tan rápido vas, en <b>km/h</b>.</p>
+  <div class="art">
+    <svg viewBox="-260 -250 520 500" style="max-height:540px">
+      <circle r="230" fill="#0a1120" stroke="#4a6283" stroke-width="8"/>
+      <g id="asi-ticks" stroke="#eef3fb" stroke-linecap="round"></g>
+      <g id="asi-labels" font-size="30" font-weight="600" fill="#eef3fb" text-anchor="middle"></g>
+      <text y="110" text-anchor="middle" font-size="26" fill="#9fb0c8" letter-spacing="3">km/h</text>
+      <g id="asi-needle"><path d="M-8 20 L 0 -190 L 8 20 Z" fill="#ffb020"/></g>
+      <circle r="18" fill="#c9d5e6"/>
+    </svg>
+  </div>
+  <ol class="steps">
+    <li><span class="n">1</span><span>La aguja gira en el <b>sentido del reloj</b> al acelerar.</span></li>
+    <li><span class="n">2</span><span>Los números están más <b>juntos arriba de 300</b>: la escala no es pareja.</span></li>
+    <li><span class="n">3</span><span>Si la velocidad cae mucho en el aire, <b>el avión deja de volar</b> (pérdida).</span></li>
+  </ol>
+</section>
+
+<!-- ═══════════════ 10 ALTÍMETRO ═══════════════ -->
+<section class="slide">
+  <div class="top"><span class="tag">Instrumentos</span><span class="num"><b>10</b> / 19</span></div>
+  <div class="progress"></div>
+  <h1>Altímetro</h1>
+  <p class="lead">Tu altura. Se lee <b>como un reloj</b> con tres agujas.</p>
+  <div class="art">
+    <svg viewBox="-260 -250 520 500" style="max-height:540px">
+      <circle r="230" fill="#0a1120" stroke="#4a6283" stroke-width="8"/>
+      <g id="alt-ticks" stroke="#eef3fb" stroke-linecap="round"></g>
+      <g id="alt-labels" font-size="40" font-weight="600" fill="#eef3fb" text-anchor="middle"></g>
+      <!-- 10 000 (corta, ancha) -->
+      <g transform="rotate(15)"><path d="M0 0 L 0 -70" stroke="#3fd3ea" stroke-width="12" stroke-linecap="round"/><path d="M-20 -70 L 0 -100 L 20 -70 Z" fill="#3fd3ea"/></g>
+      <!-- 1000 (mediana) -->
+      <g transform="rotate(151)"><path d="M-12 20 L 0 -130 L 12 20 Z" fill="#eef3fb"/></g>
+      <!-- 100 (larga) -->
+      <g transform="rotate(72)"><path d="M-6 26 L 0 -200 L 6 26 Z" fill="#ffb020"/></g>
+      <circle r="16" fill="#c9d5e6"/>
+    </svg>
+  </div>
+  <div class="rows">
+    <div class="row"><span class="k amber">LARGA</span><span class="v">Cientos</span></div>
+    <div class="row"><span class="k green" style="background:#eef3fb">MEDIANA</span><span class="v">Miles</span></div>
+    <div class="row"><span class="k">CORTA</span><span class="v">Decenas de miles</span></div>
+  </div>
+  <div class="tip warn"><span class="ic">OJO</span><span>Mide la altura sobre el <b>nivel del mar</b>, no sobre el suelo. Sobre montañas el piso está más cerca de lo que parece.</span></div>
+</section>
+
+<!-- ═══════════════ 11 HORIZONTE ARTIFICIAL ═══════════════ -->
+<section class="slide">
+  <div class="top"><span class="tag">Instrumentos</span><span class="num"><b>11</b> / 19</span></div>
+  <div class="progress"></div>
+  <h1>Horizonte artificial</h1>
+  <p class="lead">Muestra cómo está <b>inclinado</b> el avión, aunque no veas el suelo.</p>
+  <div class="art">
+    <svg viewBox="-260 -250 520 500" style="max-height:540px">
+      <defs><clipPath id="ai-clip"><circle r="210"/></clipPath></defs>
+      <g clip-path="url(#ai-clip)">
+        <g transform="rotate(-20) translate(0 30)">
+          <rect x="-400" y="-500" width="800" height="500" fill="#3a8fd6"/>
+          <rect x="-400" y="0" width="800" height="500" fill="#8a5a2b"/>
+          <path d="M-400 0 H 400" stroke="#eef3fb" stroke-width="6"/>
+          <g stroke="#eef3fb" stroke-width="4">
+            <path d="M-40 -50 H 40"/><path d="M-70 -100 H 70"/><path d="M-40 50 H 40"/><path d="M-70 100 H 70"/>
+          </g>
+        </g>
+      </g>
+      <circle r="210" fill="none" stroke="#4a6283" stroke-width="10"/>
+      <circle r="230" fill="none" stroke="#1a2c47" stroke-width="20"/>
+      <!-- escala de alabeo -->
+      <g stroke="#eef3fb" stroke-width="5">
+        <path d="M0 -210 v 30" transform="rotate(0)"/>
+        <path d="M0 -210 v 20" transform="rotate(30)"/><path d="M0 -210 v 20" transform="rotate(-30)"/>
+        <path d="M0 -210 v 20" transform="rotate(60)"/><path d="M0 -210 v 20" transform="rotate(-60)"/>
+      </g>
+      <!-- avión fijo -->
+      <g stroke="#ffb020" stroke-width="12" stroke-linecap="round" fill="none">
+        <path d="M-140 0 H -50 L -30 22"/><path d="M140 0 H 50 L 30 22"/>
+      </g>
+      <circle r="10" fill="#ffb020"/>
+    </svg>
+  </div>
+  <div class="rows">
+    <div class="row"><span class="k" style="background:#3a8fd6;color:#fff">AZUL</span><span class="v">Cielo</span></div>
+    <div class="row"><span class="k" style="background:#8a5a2b;color:#fff">CAFÉ</span><span class="v">Tierra</span></div>
+    <div class="row"><span class="k amber">ALAS ━</span><span class="v">Tu avión. Mantenlas sobre la línea blanca para <b>volar nivelado</b></span></div>
+  </div>
+</section>
+
+<!-- ═══════════════ 12 VARIÓMETRO ═══════════════ -->
+<section class="slide">
+  <div class="top"><span class="tag">Instrumentos</span><span class="num"><b>12</b> / 19</span></div>
+  <div class="progress"></div>
+  <h1>Variómetro</h1>
+  <p class="lead">Dice si estás <b>subiendo o bajando</b> y qué tan rápido.</p>
+  <div class="art">
+    <svg viewBox="-260 -250 520 500" style="max-height:540px">
+      <circle r="230" fill="#0a1120" stroke="#4a6283" stroke-width="8"/>
+      <g id="vsi-ticks" stroke="#eef3fb" stroke-linecap="round"></g>
+      <g id="vsi-labels" font-size="38" font-weight="600" fill="#eef3fb" text-anchor="middle"></g>
+      <text x="40" y="-60" text-anchor="middle" font-size="30" font-weight="700" fill="#4ade80" letter-spacing="2">SUBE ↑</text>
+      <text x="40" y="84" text-anchor="middle" font-size="30" font-weight="700" fill="#ff5a5a" letter-spacing="2">BAJA ↓</text>
+      <text x="36" y="10" font-size="22" fill="#9fb0c8">×1000 ft/min</text>
+      <g transform="rotate(30)"><path d="M10 -7 L -195 0 L 10 7 Z" fill="#ffb020"/></g>
+      <circle r="16" fill="#c9d5e6"/>
+    </svg>
+  </div>
+  <div class="rows">
+    <div class="row"><span class="k">◄ 0</span><span class="v">Aguja a la izquierda: altura constante</span></div>
+    <div class="row"><span class="k green">ARRIBA</span><span class="v">Estás subiendo</span></div>
+    <div class="row"><span class="k red">ABAJO</span><span class="v">Estás bajando</span></div>
+  </div>
+  <div class="tip"><span class="ic">TIP</span><span>Reacciona con <b>un poco de retraso</b>, como uno real. Espera a que se asiente.</span></div>
+</section>
+
+<!-- ═══════════════ 13 RELOJ Y MUNICIÓN ═══════════════ -->
+<section class="slide">
+  <div class="top"><span class="tag">Instrumentos</span><span class="num"><b>13</b> / 19</span></div>
+  <div class="progress"></div>
+  <h1>Reloj y munición</h1>
+  <div class="art" style="padding:40px 30px">
+    <svg viewBox="0 0 900 440">
+      <!-- reloj -->
+      <g transform="translate(220 210)">
+        <circle r="180" fill="#0a1120" stroke="#4a6283" stroke-width="8"/>
+        <g id="clk-ticks" stroke="#eef3fb" stroke-linecap="round"></g>
+        <g transform="rotate(300)"><path d="M0 10 V -90" stroke="#eef3fb" stroke-width="14" stroke-linecap="round"/></g>
+        <g transform="rotate(60)"><path d="M0 14 V -140" stroke="#eef3fb" stroke-width="8" stroke-linecap="round"/></g>
+        <g transform="rotate(200)"><path d="M0 24 V -150" stroke="#ff5a5a" stroke-width="4" stroke-linecap="round"/></g>
+        <circle r="12" fill="#ffb020"/>
+      </g>
+      <!-- contador -->
+      <g transform="translate(480 120)">
+        <rect width="380" height="180" rx="26" fill="#1a2c47" stroke="#4a6283" stroke-width="5"/>
+        <g font-size="96" font-weight="700" fill="#eef3fb" text-anchor="middle">
+          <rect x="22" y="28" width="76" height="124" rx="10" fill="#0a1120"/><text x="60" y="124">0</text>
+          <rect x="110" y="28" width="76" height="124" rx="10" fill="#0a1120"/><text x="148" y="124">8</text>
+          <rect x="198" y="28" width="76" height="124" rx="10" fill="#0a1120"/><text x="236" y="124">4</text>
+          <rect x="286" y="28" width="76" height="124" rx="10" fill="#0a1120"/><text x="324" y="124">2</text>
+        </g>
+        <path d="M22 90 H 362" stroke="#ffb020" stroke-width="2" opacity=".5"/>
+        <text x="190" y="240" text-anchor="middle" font-size="32" fill="#9fb0c8" letter-spacing="3">BALAS RESTANTES</text>
+      </g>
+    </svg>
+  </div>
+  <div class="rows">
+    <div class="row"><span class="k">RELOJ</span><span class="v">Marca la hora y sirve para medir tu tiempo de vuelo</span></div>
+    <div class="row"><span class="k amber">CONTADOR</span><span class="v">Balas que te quedan<small>Los rodillos giran como un odómetro al disparar</small></span></div>
+  </div>
+  <div class="tip"><span class="ic">TIP</span><span>Cuando el contador llega a <b>0000</b> el arma empieza a recargar sola (ver diapositiva 17).</span></div>
+</section>
+
+<!-- ═══════════════ 14 DESPEGUE ═══════════════ -->
+<section class="slide">
+  <div class="top"><span class="tag">Vuelo</span><span class="num"><b>14</b> / 19</span></div>
+  <div class="progress"></div>
+  <h1>Despegue</h1>
+  <div class="art" style="padding:24px 30px">
+    <svg viewBox="0 0 900 300">
+      <path d="M0 250 H 900" stroke="#2a3f60" stroke-width="8"/>
+      <path d="M20 250 H 520" stroke="#eef3fb" stroke-width="6" stroke-dasharray="40 30" opacity=".5"/>
+      <path d="M110 236 C 360 236 520 230 820 60" fill="none" stroke="#ffb020" stroke-width="6" stroke-dasharray="16 14"/>
+      <g transform="translate(110 222)">
+        <path d="M-70 0 C -56 -10 44 -10 70 -2 L 70 6 C 44 10 -56 10 -70 0 Z" fill="#eef3fb"/>
+        <path d="M-70 0 L -76 -24 L -60 -24 L -50 -4 Z" fill="#eef3fb"/>
+      </g>
+      <g transform="translate(560 200) rotate(-14)">
+        <path d="M-70 0 C -56 -10 44 -10 70 -2 L 70 6 C 44 10 -56 10 -70 0 Z" fill="#eef3fb"/>
+        <path d="M-70 0 L -76 -24 L -60 -24 L -50 -4 Z" fill="#eef3fb"/>
+      </g>
+      <text x="560" y="290" text-anchor="middle" font-size="30" font-weight="700" fill="#ffb020">JALA SUAVE</text>
+      <text x="120" y="290" text-anchor="middle" font-size="30" font-weight="700" fill="#4ade80">100%</text>
+    </svg>
+  </div>
+  <ol class="steps">
+    <li><span class="n">1</span><span>Sube el switch a <b>ON</b>.</span></li>
+    <li><span class="n">2</span><span>Suelta los frenos y empuja el <b>acelerador al 100%</b>.</span></li>
+    <li><span class="n">3</span><span>Mantén la nariz <b>recta en la pista</b> girando la muñeca.</span></li>
+    <li><span class="n">4</span><span>Cerca de <b>180 km/h</b> jala el joystick <b>suavemente</b>.</span></li>
+    <li><span class="n">5</span><span>Ya en el aire, sube con el variómetro <b>arriba de 0</b> y alas niveladas.</span></li>
+  </ol>
+  <div class="tip warn"><span class="ic">OJO</span><span>No levantes demasiado la nariz: el avión pierde velocidad y <b>entra en pérdida</b>.</span></div>
+</section>
+
+<!-- ═══════════════ 15 ATERRIZAJE ═══════════════ -->
+<section class="slide">
+  <div class="top"><span class="tag">Vuelo</span><span class="num"><b>15</b> / 19</span></div>
+  <div class="progress"></div>
+  <h1>Aterrizaje</h1>
+  <div class="art" style="padding:24px 30px">
+    <svg viewBox="0 0 900 300">
+      <path d="M0 250 H 900" stroke="#2a3f60" stroke-width="8"/>
+      <path d="M380 250 H 880" stroke="#eef3fb" stroke-width="6" stroke-dasharray="40 30" opacity=".5"/>
+      <path d="M60 50 C 300 120 420 230 640 238" fill="none" stroke="#3fd3ea" stroke-width="6" stroke-dasharray="16 14"/>
+      <g transform="translate(160 86) rotate(14)">
+        <path d="M-70 0 C -56 -10 44 -10 70 -2 L 70 6 C 44 10 -56 10 -70 0 Z" fill="#eef3fb"/>
+        <path d="M-70 0 L -76 -24 L -60 -24 L -50 -4 Z" fill="#eef3fb"/>
+      </g>
+      <g transform="translate(660 224) rotate(-4)">
+        <path d="M-70 0 C -56 -10 44 -10 70 -2 L 70 6 C 44 10 -56 10 -70 0 Z" fill="#eef3fb"/>
+        <path d="M-70 0 L -76 -24 L -60 -24 L -50 -4 Z" fill="#eef3fb"/>
+      </g>
+      <text x="160" y="170" text-anchor="middle" font-size="30" font-weight="700" fill="#3fd3ea">BAJA DESPACIO</text>
+      <text x="780" y="290" text-anchor="middle" font-size="30" font-weight="700" fill="#ff5a5a">FRENA</text>
+    </svg>
+  </div>
+  <ol class="steps">
+    <li><span class="n">1</span><span>Alinéate con la pista desde lejos.</span></li>
+    <li><span class="n">2</span><span><b>Reduce el acelerador</b> y baja poco a poco.</span></li>
+    <li><span class="n">3</span><span>Antes de tocar, <b>nivela las alas</b> y levanta un poco la nariz.</span></li>
+    <li><span class="n">4</span><span>Toca con las ruedas, acelerador a 0 y <b>frena</b> con el stick izquierdo.</span></li>
+  </ol>
+  <div class="tip warn"><span class="ic">OJO</span><span>Si bajas a más de <b>~1 000 ft/min</b> en el variómetro o con las alas muy inclinadas, cuenta como <b>choque</b>.</span></div>
+</section>
+
+<!-- ═══════════════ 16 PÉRDIDA ═══════════════ -->
+<section class="slide">
+  <div class="top"><span class="tag">Vuelo</span><span class="num"><b>16</b> / 19</span></div>
+  <div class="progress"></div>
+  <h1>Pérdida de sustentación</h1>
+  <p class="lead">Si la nariz apunta <b>demasiado arriba</b> o vas muy lento, las alas dejan de sostener al avión y <b>cae</b>.</p>
+  <div class="art">
+    <svg viewBox="0 0 900 400">
+      <path d="M60 250 H 560" stroke="#2a3f60" stroke-width="4" stroke-dasharray="14 12"/>
+      <path d="M520 250 A 200 200 0 0 0 496.6 156.1" fill="none" stroke="#ff5a5a" stroke-width="6"/>
+      <g transform="translate(320 250) rotate(-28)">
+        <path d="M-150 0 C -120 -20 100 -20 150 -4 L 150 10 C 100 20 -120 20 -150 0 Z" fill="#eef3fb"/>
+        <path d="M-150 0 L -164 -50 L -130 -50 L -110 -8 Z" fill="#eef3fb"/>
+        <ellipse cx="40" cy="-14" rx="40" ry="14" fill="#3fd3ea"/>
+      </g>
+      <text x="320" y="385" text-anchor="middle" font-size="34" font-weight="700" fill="#ff5a5a">NARIZ MUY ARRIBA</text>
+      <g stroke="#ff5a5a" stroke-width="10" stroke-linecap="round" fill="none">
+        <path d="M720 80 V 260"/><path d="M686 226 L 720 262 L 754 226"/>
+      </g>
+      <text x="720" y="320" text-anchor="middle" font-size="34" font-weight="700" fill="#ff5a5a">CAE</text>
+    </svg>
+  </div>
+  <div class="lead" style="margin-bottom:24px;color:var(--text);font-family:Bahnschrift,'Segoe UI';font-weight:700;font-size:48px">Para recuperarte:</div>
+  <ol class="steps">
+    <li><span class="n">1</span><span><b>Empuja</b> el joystick para bajar la nariz.</span></li>
+    <li><span class="n">2</span><span>Acelerador al <b>100%</b>.</span></li>
+    <li><span class="n">3</span><span>Nivela las alas y, cuando recuperes velocidad, sube <b>suave</b>.</span></li>
+  </ol>
+</section>
+
+<!-- ═══════════════ 17 AMETRALLADORA ═══════════════ -->
+<section class="slide">
+  <div class="top"><span class="tag">Combate</span><span class="num"><b>17</b> / 19</span></div>
+  <div class="progress"></div>
+  <h1>Ametralladora</h1>
+  <p class="lead">Dispara <b>hacia donde apunta la nariz</b>. Usa el avión entero para apuntar.</p>
+  <div class="art">
+    <svg viewBox="0 0 900 380">
+      <g transform="translate(160 200)">
+        <path d="M0 -170 C 12 -170 18 -150 18 -122 L 18 -50 L 150 -26 L 150 -4 L 18 -4 L 14 90 L 60 102 L 60 116 L 0 110 L -60 116 L -60 102 L -14 90 L -18 -4 L -150 -4 L -150 -26 L -18 -50 L -18 -122 C -18 -150 -12 -170 0 -170 Z" fill="#eef3fb" transform="rotate(90)"/>
+      </g>
+      <g stroke-width="6" stroke-linecap="round">
+        <path d="M340 186 L 560 196" stroke="#ffb020"/><path d="M600 198 L 700 202" stroke="#ffb020" opacity=".7"/>
+        <path d="M340 214 L 560 204" stroke="#ffb020"/><path d="M600 202 L 700 200" stroke="#ffb020" opacity=".7"/>
+      </g>
+      <!-- blanco -->
+      <g transform="translate(790 200)">
+        <circle r="80" fill="none" stroke="#ff5a5a" stroke-width="8"/>
+        <circle r="46" fill="none" stroke="#ff5a5a" stroke-width="8"/>
+        <circle r="14" fill="#ff5a5a"/>
+      </g>
+    </svg>
+  </div>
+  <div class="rows">
+    <div class="row"><span class="k red">GATILLO</span><span class="v">Mantén apretado para disparar<small>Con la misma mano que sujeta el joystick</small></span></div>
+    <div class="row"><span class="k amber">1000</span><span class="v">Balas por carga<small>Míralas en el contador de la cabina</small></span></div>
+    <div class="row"><span class="k">RECARGA</span><span class="v">Automática al vaciarse: <b>60 s</b><small>Aparece “RECARGANDO” con la cuenta atrás</small></span></div>
+  </div>
+  <div class="tip"><span class="ic">TIP</span><span>Dispara en <b>ráfagas cortas</b>. Solo funciona sentado en el avión.</span></div>
+</section>
+
+<!-- ═══════════════ 18 LÍMITES DEL MAPA ═══════════════ -->
+<section class="slide">
+  <div class="top"><span class="tag">Reglas</span><span class="num"><b>18</b> / 19</span></div>
+  <div class="progress"></div>
+  <h1>Límites del mapa</h1>
+  <p class="lead">El mundo es un <b>círculo con techo</b>. Si te alejas demasiado o subes muy alto, suena una alarma.</p>
+  <div class="art">
+    <svg viewBox="0 0 900 470">
+      <circle cx="450" cy="235" r="210" fill="#ff5a5a" opacity=".18" stroke="#ff5a5a" stroke-width="6"/>
+      <circle cx="450" cy="235" r="168" fill="#142238" stroke="#ffb020" stroke-width="5" stroke-dasharray="16 12"/>
+      <circle cx="450" cy="235" r="168" fill="#4ade80" opacity=".08"/>
+      <text x="450" y="230" text-anchor="middle" font-size="40" font-weight="700" fill="#4ade80">ZONA LIBRE</text>
+      <text x="450" y="275" text-anchor="middle" font-size="28" fill="#9fb0c8">vuela tranquilo</text>
+      <text x="450" y="58" text-anchor="middle" font-size="26" font-weight="700" fill="#ffb020">ADVERTENCIA</text>
+      <text x="450" y="460" text-anchor="middle" font-size="26" font-weight="700" fill="#ff5a5a">LÍMITE</text>
+      <!-- avión regresando -->
+      <g transform="translate(600 92) rotate(-135) scale(.24)">
+        <path d="M0 -170 C 14 -170 20 -146 20 -116 L 20 -40 L 230 -6 L 230 22 L 20 18 L 16 110 L 80 126 L 80 144 L 0 136 L -80 144 L -80 126 L -16 110 L -20 18 L -230 22 L -230 -6 L -20 -40 L -20 -116 C -20 -146 -14 -170 0 -170 Z" fill="#eef3fb"/>
+      </g>
+      <path d="M570 122 L 520 172" fill="none" stroke="#eef3fb" stroke-width="6" stroke-dasharray="12 10"/>
+      <path d="M520 146 L 514 178 L 546 172" fill="none" stroke="#eef3fb" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+  <ol class="steps">
+    <li><span class="n">1</span><span>Al entrar a la <b>advertencia</b> tienes <b>15 s</b> para regresar.</span></li>
+    <li><span class="n">2</span><span>Si das la vuelta hacia el centro, <b>la cuenta se pausa</b>.</span></li>
+    <li><span class="n">3</span><span>Si llegas al límite, la pantalla se oscurece y <b>el avión da la vuelta solo</b>.</span></li>
+  </ol>
+</section>
+
+<!-- ═══════════════ 19 CHOQUES ═══════════════ -->
+<section class="slide">
+  <div class="top"><span class="tag">Reglas</span><span class="num"><b>19</b> / 19</span></div>
+  <div class="progress"></div>
+  <h1>Si te estrellas</h1>
+  <p class="lead">No pasa nada: <b>vuelves a empezar</b> en la pista.</p>
+  <div class="art">
+    <svg viewBox="0 0 900 360">
+      <g transform="translate(200 180)">
+        <path d="M0 -110 L 26 -40 L 100 -60 L 52 0 L 110 50 L 34 46 L 20 120 L -14 56 L -86 90 L -50 22 L -110 -16 L -36 -36 Z" fill="#ff5a5a"/>
+        <path d="M0 -60 L 14 -20 L 52 -30 L 26 4 L 56 30 L 16 26 L 8 62 L -8 30 L -44 46 L -26 10 L -56 -8 L -20 -18 Z" fill="#ffb020"/>
+      </g>
+      <g fill="none" stroke="#9fb0c8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M360 180 H 500"/><path d="M474 154 L 502 180 L 474 206"/>
+      </g>
+      <g transform="translate(700 180)">
+        <rect x="-160" y="-100" width="320" height="200" rx="26" fill="#0a1120" stroke="#4a6283" stroke-width="5"/>
+        <path d="M-120 60 H 120" stroke="#eef3fb" stroke-width="6" stroke-dasharray="30 20" opacity=".5"/>
+        <g transform="translate(0 30)">
+          <path d="M-70 0 C -56 -10 44 -10 70 -2 L 70 6 C 44 10 -56 10 -70 0 Z" fill="#eef3fb"/>
+          <path d="M-70 0 L -76 -24 L -60 -24 L -50 -4 Z" fill="#eef3fb"/>
+        </g>
+        <text x="0" y="-50" text-anchor="middle" font-size="30" font-weight="700" fill="#4ade80">EN LA PISTA</text>
+      </g>
+    </svg>
+  </div>
+  <div class="rows">
+    <div class="row"><span class="k red">CHOQUE</span><span class="v">Golpear el suelo o un obstáculo con el cuerpo o las alas, o aterrizar muy fuerte</span></div>
+    <div class="row"><span class="k amber">PANTALLA</span><span class="v">Se oscurece y te dice <b>qué pasó</b></span></div>
+    <div class="row"><span class="k green">REAPARECES</span><span class="v">En la pista, motor <b>apagado</b> y munición llena</span></div>
+  </div>
+  <div class="tip"><span class="ic">TIP</span><span>Repite desde la diapositiva <b>04</b>: switch ON, acelerador y despega.</span></div>
+</section>
+
+<script>
+  // Barra de progreso de cada diapositiva
+  const slides = [...document.querySelectorAll('.slide')];
+  slides.forEach((s, i) => {
+    const bar = s.querySelector('.progress');
+    if (!bar) return;
+    bar.innerHTML = slides.map((_, j) => `<i class="${j <= i ? 'on' : ''}"></i>`).join('');
+  });
+
+  const NS = 'http://www.w3.org/2000/svg';
+  const add = (parent, tag, attrs, text) => {
+    const el = document.createElementNS(NS, tag);
+    for (const k in attrs) el.setAttribute(k, attrs[k]);
+    if (text !== undefined) el.textContent = text;
+    parent.appendChild(el);
+    return el;
+  };
+  const polar = (deg, r) => [Math.sin(deg * Math.PI / 180) * r, -Math.cos(deg * Math.PI / 180) * r];
+
+  // Velocímetro: misma escala no lineal que AirSpeedInstrument (240° de barrido)
+  {
+    const speeds = [0, 50, 100, 150, 200, 250, 300, 400, 500, 600, 700];
+    const pct = [0, .1, .18, .25, .32, .38, .44, .58, .72, .86, 1];
+    const start = -120, sweep = 240;
+    const ang = v => {
+      for (let i = 1; i < speeds.length; i++) if (v <= speeds[i]) {
+        const t = (v - speeds[i - 1]) / (speeds[i] - speeds[i - 1]);
+        return start + sweep * (pct[i - 1] + t * (pct[i] - pct[i - 1]));
+      }
+      return start + sweep;
+    };
+    const ticks = document.getElementById('asi-ticks'), labels = document.getElementById('asi-labels');
+    for (let v = 0; v <= 700; v += 25) {
+      const major = speeds.includes(v);
+      if (!major && v > 300 && v % 50) continue;
+      const a = ang(v), [x1, y1] = polar(a, 214), [x2, y2] = polar(a, major ? 180 : 198);
+      add(ticks, 'line', { x1, y1, x2, y2, 'stroke-width': major ? 6 : 3 });
+      if (major && v % 100 === 0 || v === 50 || v === 150) {
+        const [lx, ly] = polar(a, 148);
+        add(labels, 'text', { x: lx, y: ly + 11 }, v);
+      }
+    }
+    document.getElementById('asi-needle').setAttribute('transform', `rotate(${ang(180)})`);
+  }
+
+  // Altímetro: 0-9
+  {
+    const ticks = document.getElementById('alt-ticks'), labels = document.getElementById('alt-labels');
+    for (let i = 0; i < 50; i++) {
+      const a = i * 7.2, major = i % 5 === 0, [x1, y1] = polar(a, 214), [x2, y2] = polar(a, major ? 182 : 200);
+      add(ticks, 'line', { x1, y1, x2, y2, 'stroke-width': major ? 6 : 3 });
+      if (major) { const [lx, ly] = polar(a, 148); add(labels, 'text', { x: lx, y: ly + 14 }, i / 5); }
+    }
+  }
+
+  // Variómetro: 0 a la izquierda, sube por arriba (horario), baja por abajo
+  {
+    const ticks = document.getElementById('vsi-ticks'), labels = document.getElementById('vsi-labels');
+    const marks = [0, 0.5, 1, 1.5, 2, 3, 4, 5, 6];
+    const deg = [0, 22, 44, 62, 80, 110, 135, 157, 175];
+    marks.forEach((m, i) => {
+      [1, -1].forEach(sign => {
+        if (m === 0 && sign < 0) return;
+        const a = -90 + sign * deg[i], major = Number.isInteger(m);
+        const [x1, y1] = polar(a, 214), [x2, y2] = polar(a, major ? 180 : 198);
+        add(ticks, 'line', { x1, y1, x2, y2, 'stroke-width': major ? 6 : 3 });
+        if (major && m !== 6) { const [lx, ly] = polar(a, 146); add(labels, 'text', { x: lx, y: ly + 13 }, m); }
+      });
+    });
+  }
+
+  // Reloj
+  {
+    const ticks = document.getElementById('clk-ticks');
+    for (let i = 0; i < 60; i++) {
+      const major = i % 5 === 0, [x1, y1] = polar(i * 6, 168), [x2, y2] = polar(i * 6, major ? 138 : 156);
+      add(ticks, 'line', { x1, y1, x2, y2, 'stroke-width': major ? 7 : 3 });
+    }
+  }
+
+  // instrucciones.html#N → solo la diapositiva N (para exportar)
+  const n = parseInt(location.hash.slice(1), 10);
+  if (n >= 1 && n <= slides.length) {
+    document.body.classList.add('single');
+    slides[n - 1].classList.add('active');
+  }
+</script>
+</body>
+</html>

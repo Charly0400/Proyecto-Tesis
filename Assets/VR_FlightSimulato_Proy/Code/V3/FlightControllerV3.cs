@@ -1,5 +1,6 @@
 ﻿using MikeNspired.XRIStarterKit;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
 
@@ -42,8 +43,13 @@ namespace Charly.FlightController {
         public float controlSensitivity = 1.0f;
         public float yawSensitivity = 1.0f;
 
-        [Header("Brakes")]
-        public SphereCollider[] wheels;
+        [Header("Frenos (stick del control izquierdo)")]
+        [Tooltip("Abajo = frenar ambas ruedas (proporcional a cuánto se empuja). A un lado = frenar más la rueda de ese lado " +
+                 "(freno diferencial, ayuda a girar). Solo con el piloto sentado. La fuerza la aplica AircraftPhysics")]
+        public InputAction brakeInput = new InputAction("Frenos", InputActionType.Value, BrakeBindingDefault, expectedControlType: "Vector2");
+        [Tooltip("Zona muerta del stick (0..1): el pulgar apoyado o un stick con juego no frenan")]
+        [Range(0f, 0.9f)]
+        public float brakeDeadZone = 0.2f;
 
         [Header("Debug")]
         [SerializeField] private bool enableDebugLogging = false;
@@ -61,6 +67,10 @@ namespace Charly.FlightController {
         public float Yaw => m_YawInput;
         /// <summary>Posición de los flaps 0..1 (0 = retraídos, 1 = extendidos al máximo).</summary>
         public float Flaps => m_FlapsInput;
+        /// <summary>Freno de la rueda principal izquierda 0..1.</summary>
+        public float BrakeLeft => m_BrakeLeft;
+        /// <summary>Freno de la rueda principal derecha 0..1.</summary>
+        public float BrakeRight => m_BrakeRight;
         public bool EngineOn => m_EngineOn;
 
         // ───────── Compatibilidad con UI / otros scripts ─────────
@@ -78,6 +88,11 @@ namespace Charly.FlightController {
         private float m_YawInput;
         private float m_FlapsInput;
         private bool m_EngineOn;
+        private float m_BrakeLeft;
+        private float m_BrakeRight;
+        private bool m_BrakeButton;       // WheelsBreaks(true): ambos frenos a fondo
+
+        private const string BrakeBindingDefault = "<XRController>{LeftHand}/{Primary2DAxis}";
 
         private JoystickXRV2 m_FlightStickV2;
         private ThrottleXRV2[] m_ThrottlesV2;
@@ -93,6 +108,19 @@ namespace Charly.FlightController {
 
             if (aircraftPhysics == null)
                 Debug.LogWarning("FlightController: no hay AircraftPhysics en este GameObject. El avión no tendrá física de vuelo.", this);
+
+            // Por si la acción quedó sin bindings en la escena
+            if (brakeInput.bindings.Count == 0)
+                brakeInput.AddBinding(BrakeBindingDefault);
+        }
+
+        private void OnEnable() {
+            brakeInput.Enable();
+        }
+
+        private void OnDisable() {
+            brakeInput.Disable();
+            m_BrakeLeft = m_BrakeRight = 0f;
         }
 
         private void Start() {
@@ -101,6 +129,7 @@ namespace Charly.FlightController {
 
         private void Update() {
             UpdateThrottleGradual();
+            UpdateBrakes();
             UpdateSpeedValues();
 
             if (enableDebugLogging) {
@@ -159,6 +188,23 @@ namespace Charly.FlightController {
 
             float rate = (target > m_CurrentThrottle) ? throttleAccelerationRate : throttleDecelerationRate;
             m_CurrentThrottle = Mathf.MoveTowards(m_CurrentThrottle, target, rate * Time.deltaTime);
+        }
+
+        /// <summary>
+        /// Stick izquierdo: abajo = ambos frenos, a un lado = más freno en la rueda de ese lado.
+        /// Solo con el piloto sentado: parado fuera del avión ese stick sirve para caminar (locomoción XRI).
+        /// </summary>
+        private void UpdateBrakes() {
+            Vector2 stick = (aircraft == null || aircraft.isPlayerSeated) ? brakeInput.ReadValue<Vector2>() : Vector2.zero;
+
+            float both = m_BrakeButton ? 1f : ApplyBrakeDeadZone(-stick.y);
+            float side = ApplyBrakeDeadZone(Mathf.Abs(stick.x)) * Mathf.Sign(stick.x);   // + = derecha
+            m_BrakeLeft = Mathf.Clamp01(both + Mathf.Max(0f, -side));
+            m_BrakeRight = Mathf.Clamp01(both + Mathf.Max(0f, side));
+        }
+
+        private float ApplyBrakeDeadZone(float value) {
+            return Mathf.Clamp01((value - brakeDeadZone) / Mathf.Max(0.01f, 1f - brakeDeadZone));
         }
 
         private void OnJoystickInput(Vector2 input) {
@@ -241,6 +287,7 @@ namespace Charly.FlightController {
 
             m_DirectionInput = Vector2.zero;
             m_YawInput = 0f;
+            m_BrakeButton = false;
         }
 
         private static void Release(XRBaseInteractable interactable) {
@@ -253,15 +300,12 @@ namespace Charly.FlightController {
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
 
+        /// <summary>
+        /// Ambos frenos a fondo mientras sea true (para un botón o switch de la cabina), además del stick izquierdo.
+        /// Ya no toca la fricción de las ruedas: la fuerza de frenado la aplica AircraftPhysics con las ruedas en el suelo.
+        /// </summary>
         public void WheelsBreaks(bool isBraking) {
-            if (wheels == null) return;
-
-            float friction = isBraking ? .2f : 0f;
-
-            foreach (SphereCollider wheel in wheels) {
-                if (wheel != null)
-                    wheel.material.dynamicFriction = friction;
-            }
+            m_BrakeButton = isBraking;
         }
 
         public void ToggleAircraftEntrance() {

@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
+using Unity.XR.CoreUtils;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -60,6 +61,9 @@ namespace Charly.FlightController {
         [SerializeField] private float maxBodyImpactSpeed = 10f;
         [Tooltip("Inclinación (grados) tocando el suelo a partir de la cual el avión se considera volcado")]
         [SerializeField] private float flippedTiltDeg = 75f;
+        [Tooltip("Por debajo de esta velocidad (m/s) del propio avión un golpe no cuenta como choque " +
+                 "(p. ej. algo que empuja al avión estacionado)")]
+        [SerializeField] private float minAircraftSpeedForCrash = 3f;
 
         [Header("Reaparición")]
         [Tooltip("Dónde reaparece. Si se deja vacío, donde estaba el avión al empezar la escena")]
@@ -149,6 +153,8 @@ namespace Charly.FlightController {
 
         private void OnCollisionEnter(Collision collision) {
             if (!CanCrash(collision)) return;
+            // El que se mueve es el otro objeto, no el avión: no es un choque del avión
+            if (m_LastVelocity.magnitude < minAircraftSpeedForCrash) return;
 
             ContactPoint contact = collision.GetContact(0);
             Vector3 relVel = collision.relativeVelocity;
@@ -188,6 +194,9 @@ namespace Charly.FlightController {
             // Piezas del propio avión (palancas, switches, rig XR sentado) nunca cuentan como choque.
             // Si llegan a chocar es porque se perdió su IgnoreCollision; AircraftPhysics lo vuelve a aplicar.
             if (collision.collider != null && collision.collider.transform.IsChildOf(transform)) return false;
+            // El cuerpo y las manos del jugador (XR Origin) tampoco: al teletransportarse junto al avión
+            // sus colliders "aparecen" de golpe y Unity lo ve como un impacto a gran velocidad
+            if (collision.collider != null && collision.collider.GetComponentInParent<XROrigin>() != null) return false;
             // Durante el regreso del límite del mapa el avión se teletransporta: no contar eso
             return mapBoundary == null || !mapBoundary.IsRelocating;
         }

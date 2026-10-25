@@ -1,4 +1,5 @@
 using MikeNspired.XRIStarterKit;
+using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.Pool;
@@ -20,13 +21,19 @@ namespace Charly.FlightController {
         [SerializeField] private Rigidbody aircraftBody;
         [Tooltip("Para disparar solo con el piloto sentado. Si se deja vacío se busca en los padres")]
         [SerializeField] private AircraftVehicle aircraft;
+        [Tooltip("Al estrellarse se deja de disparar, se cancela la recarga y la munición vuelve al máximo. Si se deja vacío se busca en los padres")]
+        [SerializeField] private CrashHandler crashHandler;
         [Tooltip("Puntos de salida de las balas (se alternan). Solo importa su posición: la dirección la da el eje Z (azul) de este objeto. Vacío = este transform")]
         [SerializeField] private Transform[] muzzles;
         [Tooltip("Fogonazo de cada cañón, en el mismo orden que 'muzzles' (opcional)")]
         [SerializeField] private ParticleSystem[] muzzleFlashes;
 
         [Header("Disparo")]
-        [Tooltip("Disparos por minuto, entre todos los cañones")]
+        [Tooltip("Activado: todos los cañones disparan a la vez (cada disparo gasta una bala por cañón). " +
+                 "Apagado: un cañón a la vez, alternando")]
+        public bool fireAllAtOnce = false;
+        [Tooltip("Disparos por minuto. Un cañón a la vez: balas por minuto entre todos. " +
+                 "Todos a la vez: salvas por minuto (cada salva saca una bala por cañón)")]
         public float roundsPerMinute = 900f;
         [Tooltip("Velocidad de salida de la bala en m/s (se le suma la del avión)")]
         public float muzzleVelocity = 850f;
@@ -38,6 +45,17 @@ namespace Charly.FlightController {
         public int maxAmmo = 1000;
         [Tooltip("Arma armada. Se puede conectar a un XRSwitch (Master Arm) con SetArmed")]
         public bool armed = true;
+
+        [Header("Recarga")]
+        [Tooltip("Al quedarse sin balas empieza a recargar solo. Si está apagado hay que llamar a StartReload (botón de la cabina)")]
+        public bool autoReload = true;
+        [Tooltip("Segundos que tarda la recarga. Mientras dura no se puede disparar")]
+        public float reloadTime = 5f;
+        [Tooltip("Texto de la cuenta regresiva (TextMeshPro 3D o UI). Su GameObject se activa solo mientras se recarga, " +
+                 "así que conviene que esté en un objeto propio")]
+        [SerializeField] private TMP_Text reloadText;
+        [Tooltip("Formato del texto. {0} = segundos restantes")]
+        [SerializeField] private string reloadFormat = "RECARGANDO\n{0:0.0} s";
 
         [Header("Balas")]
         [Tooltip("Prefab con Projectile y un TrailRenderer. Si se deja vacío se genera uno sencillo con 'tracerMaterial'")]
@@ -75,13 +93,22 @@ namespace Charly.FlightController {
         [Header("Events")]
         [Tooltip("Munición restante después de cada disparo y al recargar")]
         public UnityEvent<int> OnAmmoChanged;
+        [Tooltip("Al empezar la recarga (para un sonido, una luz...)")]
+        public UnityEvent OnReloadStarted;
+        [Tooltip("Al terminar la recarga, ya con la munición llena")]
+        public UnityEvent OnReloadFinished;
 
         /// <summary>Raíz del avión: las balas ignoran todo lo que cuelga de aquí.</summary>
         public Transform ShooterRoot => aircraftBody != null ? aircraftBody.transform : transform.root;
         public int Ammo => m_Ammo;
         public bool IsFiring => m_TriggerHeld && CanFire;
+        public bool IsReloading => m_ReloadTimeLeft > 0f;
+        /// <summary>Segundos que faltan para terminar la recarga (0 si no está recargando).</summary>
+        public float ReloadTimeLeft => m_ReloadTimeLeft;
         private bool HasInfiniteAmmo => maxAmmo <= 0;
-        private bool CanFire => armed && (HasInfiniteAmmo || m_Ammo > 0) && (aircraft == null || aircraft.isPlayerSeated);
+        private bool HasAmmo => HasInfiniteAmmo || m_Ammo > 0;
+        private bool CanFire => armed && !IsReloading && HasAmmo && (aircraft == null || aircraft.isPlayerSeated)
+                                && (crashHandler == null || !crashHandler.IsCrashed);
 
         private ObjectPool<Projectile> m_Pool;
         private Transform m_Container;
@@ -94,6 +121,8 @@ namespace Charly.FlightController {
         private int m_NextMuzzle;
         private int[] m_MuzzleShots;   // balas disparadas por cada cañón (para repartir las trazadoras)
         private int m_Ammo;
+        private float m_ReloadTimeLeft;
+        private float m_ShownReloadTime = -1f;   // último valor escrito en el texto (para no reconstruirlo cada frame)
 
         #region Unity Methods
         private void Start() {
@@ -101,6 +130,8 @@ namespace Charly.FlightController {
                 aircraftBody = GetComponentInParent<Rigidbody>();
             if (aircraft == null)
                 aircraft = GetComponentInParent<AircraftVehicle>();
+            if (crashHandler == null)
+                crashHandler = GetComponentInParent<CrashHandler>();
             if (flightStick == null)
                 flightStick = ShooterRoot.GetComponentInChildren<JoystickXRV2>(true);
             if (audioSource == null)
@@ -131,9 +162,13 @@ namespace Charly.FlightController {
             else {
                 Debug.LogWarning($"{name}: no se encontró un JoystickXRV2, el arma no podrá dispararse con el gatillo.", this);
             }
+
+            if (crashHandler != null)
+                crashHandler.onCrashed.AddListener(OnCrashed);
         }
 
         private void Update() {
+            UpdateReload();
             if (!IsFiring) return;
 
             float interval = 60f / Mathf.Max(1f, roundsPerMinute);
@@ -152,6 +187,8 @@ namespace Charly.FlightController {
                 flightStick.deactivated.RemoveListener(OnTriggerReleased);
                 flightStick.selectExited.RemoveListener(OnStickReleased);
             }
+            if (crashHandler != null)
+                crashHandler.onCrashed.RemoveListener(OnCrashed);
 
             m_Pool?.Dispose();
             if (m_Container != null)
@@ -180,12 +217,45 @@ namespace Charly.FlightController {
             m_TriggerHeld = false;
             m_HapticInteractor = null;
         }
+
+        private void OnCrashed() {
+            // Reload() también corta una recarga en curso y oculta su texto
+            StopFiring();
+            Reload();
+        }
         #endregion
 
         #region Disparo
         private void FireOnce() {
-            int index = m_NextMuzzle;
-            m_NextMuzzle = (m_NextMuzzle + 1) % muzzles.Length;
+            if (fireAllAtOnce) {
+                // Salva: una bala por cañón (si quedan menos balas que cañones, salen las que haya)
+                for (int i = 0; i < muzzles.Length && HasAmmo; i++)
+                    FireMuzzle(i);
+            }
+            else {
+                FireMuzzle(m_NextMuzzle);
+                m_NextMuzzle = (m_NextMuzzle + 1) % muzzles.Length;
+            }
+
+            // Sonido y vibración una vez por disparo: en una salva suenan como un solo golpe
+            if (audioSource != null && shotClip != null) {
+                audioSource.pitch = Random.Range(pitchRange.x, pitchRange.y);
+                audioSource.PlayOneShot(shotClip);
+            }
+
+            if (m_HapticInteractor != null && hapticAmplitude > 0f)
+                m_HapticInteractor.SendHapticImpulse(hapticAmplitude, hapticDuration);
+
+            if (!HasInfiniteAmmo) {
+                OnAmmoChanged?.Invoke(m_Ammo);
+
+                if (m_Ammo <= 0 && autoReload)
+                    StartReload();
+            }
+        }
+
+        /// <summary>Saca una bala por un cañón: dirección, trazadora, fogonazo y munición.</summary>
+        private void FireMuzzle(int index) {
             Transform muzzle = muzzles[index];
 
             // Se apunta con el eje Z de ESTE objeto (no con el del avión): el modelo puede estar inclinado
@@ -210,18 +280,8 @@ namespace Charly.FlightController {
             if (muzzleFlashes != null && index < muzzleFlashes.Length && muzzleFlashes[index] != null)
                 muzzleFlashes[index].Play(true);
 
-            if (audioSource != null && shotClip != null) {
-                audioSource.pitch = Random.Range(pitchRange.x, pitchRange.y);
-                audioSource.PlayOneShot(shotClip);
-            }
-
-            if (m_HapticInteractor != null && hapticAmplitude > 0f)
-                m_HapticInteractor.SendHapticImpulse(hapticAmplitude, hapticDuration);
-
-            if (!HasInfiniteAmmo) {
+            if (!HasInfiniteAmmo)
                 m_Ammo--;
-                OnAmmoChanged?.Invoke(m_Ammo);
-            }
         }
 
         private Vector3 ApplySpread(Vector3 direction) {
@@ -235,10 +295,67 @@ namespace Charly.FlightController {
             armed = value;
         }
 
-        /// <summary>Munición al máximo. Conectar a CrashHandler.onRespawned para recargar al reaparecer.</summary>
+        /// <summary>
+        /// Munición al máximo AL INSTANTE (cancela una recarga en curso).
+        /// Conectar a CrashHandler.onRespawned para recargar al reaparecer.
+        /// </summary>
         public void Reload() {
+            m_ReloadTimeLeft = 0f;
+            SetReloadTextVisible(false);
+
             m_Ammo = maxAmmo;
             OnAmmoChanged?.Invoke(m_Ammo);
+        }
+        #endregion
+
+        #region Recarga
+        /// <summary>
+        /// Empieza la recarga con temporizador. Se llama sola al vaciarse el arma si 'autoReload' está activo;
+        /// también se puede conectar a un botón de la cabina. No hace nada si ya recarga o si el arma está llena.
+        /// </summary>
+        public void StartReload() {
+            if (IsReloading || HasInfiniteAmmo || m_Ammo >= maxAmmo) return;
+
+            if (reloadTime <= 0f) {
+                Reload();
+                OnReloadFinished?.Invoke();
+                return;
+            }
+
+            m_ReloadTimeLeft = reloadTime;
+            m_ShownReloadTime = -1f;
+            SetReloadTextVisible(true);
+            UpdateReloadText();
+            OnReloadStarted?.Invoke();
+        }
+
+        private void UpdateReload() {
+            if (!IsReloading) return;
+
+            m_ReloadTimeLeft -= Time.deltaTime;
+            if (m_ReloadTimeLeft > 0f) {
+                UpdateReloadText();
+                return;
+            }
+
+            Reload();
+            OnReloadFinished?.Invoke();
+        }
+
+        private void UpdateReloadText() {
+            if (reloadText == null) return;
+
+            // Solo se reescribe cuando cambia la décima de segundo que se muestra
+            float shown = Mathf.Ceil(m_ReloadTimeLeft * 10f) / 10f;
+            if (Mathf.Approximately(shown, m_ShownReloadTime)) return;
+
+            m_ShownReloadTime = shown;
+            reloadText.text = string.Format(reloadFormat, shown);
+        }
+
+        private void SetReloadTextVisible(bool visible) {
+            if (reloadText != null)
+                reloadText.gameObject.SetActive(visible);
         }
         #endregion
 

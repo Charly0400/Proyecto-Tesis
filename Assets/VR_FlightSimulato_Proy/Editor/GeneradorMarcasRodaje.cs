@@ -17,9 +17,9 @@ public class GeneradorMarcasRodaje : EditorWindow
     const string RutaMaterial = "Assets/VR_FlightSimulato_Proy/Materials/Pista/MarcasRodaje.mat";
 
     // ---------- Parámetros ----------
-    [SerializeField] Transform pista;
-    [SerializeField] List<Transform> rodajes = new List<Transform>();      // rodaje paralelo y conectores
-    [SerializeField] List<Transform> plataformas = new List<Transform>();
+    [SerializeField] internal Transform pista;
+    [SerializeField] internal List<Transform> rodajes = new List<Transform>();      // rodaje paralelo y conectores
+    [SerializeField] internal List<Transform> plataformas = new List<Transform>();
     Material material;                    // opcional: si no hay, se crea uno amarillo URP/Lit
     float alturaSobreRodaje = 0.06f;      // m; un poco más que las marcas de pista para quedar encima
     float anchoEje = 0.4f;                // m (real 0.15; más ancho para que se lea en VR)
@@ -83,7 +83,7 @@ public class GeneradorMarcasRodaje : EditorWindow
     }
 
     // ---------- Zonas pavimentadas (rectángulos en XZ de mundo) ----------
-    class Zona
+    internal class Zona
     {
         public Vector2 c, u, v;     // centro y ejes (u = lateral, v = a lo largo)
         public float hw, hl, y;     // medio ancho, medio largo y altura de la cara superior
@@ -97,7 +97,7 @@ public class GeneradorMarcasRodaje : EditorWindow
         }
     }
 
-    static Zona CrearZona(Transform t)
+    internal static Zona CrearZona(Transform t)
     {
         if (t == null || !GeneradorMarcasPista.Medir(t, out var centro, out var marco, out float ancho, out float largo)) return null;
         var r = marco * Vector3.right;

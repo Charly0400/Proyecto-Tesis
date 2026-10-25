@@ -26417,6 +26417,92 @@ Terrain:
   m_EnableHeightmapRayTracing: 1
   m_EnableTreesAndDetailsRayTracing: 0
   m_TreeMotionVectorModeOverride: 3
+--- !u!1 &777432778
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 777432779}
+  - component: {fileID: 777432781}
+  - component: {fileID: 777432780}
+  m_Layer: 0
+  m_Name: Cylinder
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &777432779
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 777432778}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 0, z: 0.0015}
+  m_LocalScale: {x: 0.025, y: 0.0005, z: 0.025}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2352846829749371352}
+  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
+--- !u!23 &777432780
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 777432778}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 926605880d8e8ca4fa85f38b30b2ac75, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &777432781
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 777432778}
+  m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!1 &778567022
 GameObject:
   m_ObjectHideFlags: 0
@@ -79231,6 +79317,7 @@ Transform:
   - {fileID: 3405777828325471907}
   - {fileID: 2859124236013170964}
   - {fileID: 1060714356853889763}
+  - {fileID: 777432779}
   m_Father: {fileID: 5731099146608548839}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2352846829749371353
@@ -79255,11 +79342,11 @@ MonoBehaviour:
   windmillRpmPerMps: 3
   maxWindmillRpm: 400
   bladeRenderers:
-  - {fileID: 0}
-  blurDisc: {fileID: 0}
+  - {fileID: 141128544708278663}
+  blurDisc: {fileID: 777432780}
   blurStartRpm: 350
   blurFullRpm: 650
-  blurMaxAlpha: 0.5
+  blurMaxAlpha: 0.1
 --- !u!4 &2354903827152119855
 Transform:
   m_ObjectHideFlags: 0
@@ -81621,7 +81708,7 @@ Transform:
   m_GameObject: {fileID: 4183453173991143036}
   serializedVersion: 2
   m_LocalRotation: {x: 0.6832077, y: -0.18228367, z: -0.18228373, w: 0.6832076}
-  m_LocalPosition: {x: 0.000086227716, y: 0.00015975595, z: 0.0114813205}
+  m_LocalPosition: {x: 0.00008780515, y: 0.0001598304, z: -0.00035988237}
   m_LocalScale: {x: 0.099823035, y: 0.26576617, z: 0.09710235}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -84849,7 +84936,7 @@ Transform:
   m_GameObject: {fileID: 3666570373737199834}
   serializedVersion: 2
   m_LocalRotation: {x: -0.6110131, y: -0.34644827, z: 0.35545528, w: 0.6166751}
-  m_LocalPosition: {x: 0.00008698655, y: 0.00023913654, z: 0.011413669}
+  m_LocalPosition: {x: -0.00009071482, y: 0.00024640356, z: -0.0004246598}
   m_LocalScale: {x: -0.13210124, y: -0.014069198, z: -1.1002938}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -86336,9 +86423,24 @@ MonoBehaviour:
   invertYaw: 0
   controlSensitivity: 10
   yawSensitivity: 1
-  wheels:
-  - {fileID: 1035354462572321794}
-  - {fileID: 5515858670827783038}
+  brakeInput:
+    m_Name: Frenos
+    m_Type: 0
+    m_ExpectedControlType: Vector2
+    m_Id: 684d607f-992b-4091-9139-5b789df38d5f
+    m_Processors: 
+    m_Interactions: 
+    m_SingletonActionBindings:
+    - m_Name: 
+      m_Id: 93c1e10f-d802-4803-a6ae-34267d256af2
+      m_Path: <XRController>{LeftHand}/{Primary2DAxis}
+      m_Interactions: 
+      m_Processors: 
+      m_Groups: 
+      m_Action: Frenos
+      m_Flags: 0
+    m_Flags: 0
+  brakeDeadZone: 0.2
   enableDebugLogging: 0
   aircraft: {fileID: 4532174683488355668}
 --- !u!1 &3780450567341562356
@@ -89212,6 +89314,17 @@ MonoBehaviour:
   pitchStability: 15000
   yawStability: 20000
   rotationalDamping: {x: 30000, y: 30000, z: 28000}
+  landingGear:
+  - {fileID: 1035354462572321794}
+  - {fileID: 5515858670827783038}
+  - {fileID: 3761043606254224860}
+  groundTurnRateDeg: 15
+  groundMinTurnRadius: 4
+  groundTurnMaxLateralAccel: 3
+  groundSteerResponse: 0.3
+  tireGrip: 0.7
+  brakeDeceleration: 4
+  differentialBrakeSteering: 0.5
   t_AirspeedMps: 0
   t_AngleOfAttackDeg: 0
   t_SideSlipDeg: 0
@@ -89219,9 +89332,10 @@ MonoBehaviour:
   t_DragNewtons: 0
   t_ThrustNewtons: 0
   t_Stalled: 0
+  t_OnGround: 0
   logTelemetry: 0
   telemetryLogInterval: 0.5
-  ignoreInternalCollisions: 0
+  ignoreInternalCollisions: 1
   aircraftLayerName: Avion
   syncPhysicsToHeadset: 1
   fallbackPhysicsHz: 90
@@ -98400,7 +98514,24 @@ MonoBehaviour:
   invertYaw: 0
   controlSensitivity: 10
   yawSensitivity: 1
-  wheels: []
+  brakeInput:
+    m_Name: Frenos
+    m_Type: 0
+    m_ExpectedControlType: Vector2
+    m_Id: 318ac6c2-5bf9-4c3e-bd96-5fa7429c90cb
+    m_Processors: 
+    m_Interactions: 
+    m_SingletonActionBindings:
+    - m_Name: 
+      m_Id: 54d142a3-45b2-443b-92f1-479eb5e9aed1
+      m_Path: <XRController>{LeftHand}/{Primary2DAxis}
+      m_Interactions: 
+      m_Processors: 
+      m_Groups: 
+      m_Action: Frenos
+      m_Flags: 0
+    m_Flags: 0
+  brakeDeadZone: 0.2
   enableDebugLogging: 0
   aircraft: {fileID: 6471480462302678107}
 --- !u!1 &6001076912044880944
@@ -103594,13 +103725,17 @@ MonoBehaviour:
   flightController: {fileID: 0}
   mapBoundary: {fileID: 0}
   headCamera: {fileID: 0}
-  landingGear: []
+  landingGear:
+  - {fileID: 1035354462572321794}
+  - {fileID: 5515858670827783038}
+  - {fileID: 3761043606254224860}
   minGroundNormalY: 0.7
   maxLandingSinkRate: 6
   maxLandingRollDeg: 25
   maxLandingTiltDeg: 30
   maxBodyImpactSpeed: 10
   flippedTiltDeg: 75
+  minAircraftSpeedForCrash: 3
   spawnPoint: {fileID: 0}
   fadeOutTime: 0.25
   messageTime: 3
@@ -110033,7 +110168,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   engineSwitch: {fileID: 4845595783256552896}
   throttle: {fileID: 5947175489548160268}
-  throttleV2: {fileID: 0}
+  throttleV2: {fileID: 1008975911500264817}
   engineAudioSource: {fileID: 1406714091319239814}
   oneShotAudioSource: {fileID: 155813563047683094}
   engineStartClip: {fileID: 8300000, guid: b088634c1cf7ff9418cb9ea7e3a09dcc, type: 3}

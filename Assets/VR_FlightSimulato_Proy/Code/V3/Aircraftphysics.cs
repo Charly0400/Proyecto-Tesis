@@ -76,6 +76,27 @@ namespace Charly.FlightController {
         [Tooltip("Frena la rotación: X = pitch, Y = yaw, Z = roll. Velocidad máx. de giro ≈ torque / damping")]
         [SerializeField] private Vector3 rotationalDamping = new Vector3(6000f, 6000f, 6000f);
 
+        [Header("Rodaje en tierra (solo con el tren tocando el suelo)")]
+        [Tooltip("Colliders del tren de aterrizaje: las dos ruedas principales y la de cola. Con ellos se sabe si el avión " +
+                 "está en tierra; izquierda/derecha se deduce de su posición. Vacío = sin frenos ni dirección en tierra")]
+        [SerializeField] private List<Collider> landingGear = new List<Collider>();
+        [Tooltip("Giro máximo en tierra (grados/seg) con el yaw a fondo (rueda de cola)")]
+        [SerializeField] private float groundTurnRateDeg = 30f;
+        [Tooltip("Radio de giro mínimo en tierra (m). Parado no gira: hay que rodar. Con 4 m, a 1 m/s gira ~14°/s " +
+                 "y desde ~2 m/s (7 km/h) ya llega al giro máximo")]
+        [SerializeField] private float groundMinTurnRadius = 4f;
+        [Tooltip("Aceleración lateral máxima (m/s²) al girar rodando: a más velocidad, giro más abierto (evita trompos al despegar/aterrizar)")]
+        [SerializeField] private float groundTurnMaxLateralAccel = 3f;
+        [Tooltip("Segundos que tarda la dirección en tierra en alcanzar el giro pedido. Menor = más brusca")]
+        [SerializeField] private float groundSteerResponse = 0.3f;
+        [Tooltip("Agarre lateral de las llantas (coef. de fricción): el avión va hacia donde apunta el morro en vez de derrapar")]
+        [SerializeField] private float tireGrip = 0.7f;
+        [Tooltip("Desaceleración (m/s²) con ambos frenos a fondo y todo el peso sobre las ruedas. 4 ≈ 0.4 g")]
+        [SerializeField] private float brakeDeceleration = 4f;
+        [Tooltip("Cuánto ayuda el freno diferencial a girar (0 = nada, 1 = como el yaw a fondo)")]
+        [Range(0f, 1f)]
+        [SerializeField] private float differentialBrakeSteering = 0.5f;
+
         [Header("Telemetría (solo lectura, para ajustar en Play)")]
         [SerializeField] private float t_AirspeedMps;
         [SerializeField] private float t_AngleOfAttackDeg;
@@ -84,6 +105,7 @@ namespace Charly.FlightController {
         [SerializeField] private float t_DragNewtons;
         [SerializeField] private float t_ThrustNewtons;
         [SerializeField] private bool t_Stalled;
+        [SerializeField] private bool t_OnGround;
 
         [Header("Debug")]
         [Tooltip("Escribe la telemetría en la consola cada 'telemetryLogInterval' segundos (prefijo [FlightTelemetry])")]
@@ -112,6 +134,8 @@ namespace Charly.FlightController {
         public float AirspeedMps => t_AirspeedMps;
         public float AngleOfAttackDeg => t_AngleOfAttackDeg;
         public bool IsStalled => t_Stalled;
+        /// <summary>True si alguna rueda del tren (landingGear) toca el suelo.</summary>
+        public bool IsOnGround => t_OnGround;
 
         private Rigidbody rb;
 
@@ -126,6 +150,8 @@ namespace Charly.FlightController {
 
             if (input == null)
                 Debug.LogWarning("AircraftPhysics: no se encontró FlightController, el avión no recibirá controles.", this);
+            if (landingGear.Count == 0)
+                Debug.LogWarning("AircraftPhysics: 'Landing Gear' está vacío. Asigna los colliders de las ruedas para tener frenos y dirección en tierra.", this);
 
             SetupRigidbody();
             SetupAircraftLayer();
@@ -268,6 +294,7 @@ namespace Charly.FlightController {
         // Si hay empuje pero el avión no se mueve, dice qué colliders lo están frenando (máx. 1 vez por segundo)
         private float nextStuckLogTime;
         private void OnCollisionStay(Collision collision) {
+            RegisterGearContacts(collision);
             if (!logTelemetry || t_ThrustNewtons < 1000f || t_AirspeedMps > 1f || Time.time < nextStuckLogTime) return;
             nextStuckLogTime = Time.time + 1f;
             for (int i = 0; i < collision.contactCount; i++) {
@@ -279,6 +306,8 @@ namespace Charly.FlightController {
         }
 
         private void OnCollisionEnter(Collision collision) {
+            RegisterGearContacts(collision);
+
             // Una pieza propia (palanca, switch, rig XR) volvió a chocar con el avión: Unity pierde el IgnoreCollision
             // si ese collider se desactiva/reactiva o si no estaba activo al aplicarlo. Se vuelve a aplicar para que no lo frene.
             if (IsOwnPart(collision.collider)) {
@@ -332,6 +361,7 @@ namespace Charly.FlightController {
             float lift = ApplyLift(aoa, forwardSpeed, aero);
             float drag = ApplyDrag(worldVel, localVel, speed, lift, aero);
             ApplyTorques(aoa, beta, authority, aero);
+            ApplyGroundHandling(lift, aero);
 
             // Telemetría
             t_AirspeedMps = speed;
@@ -430,6 +460,99 @@ namespace Charly.FlightController {
             // Los torques se calcularon en ejes aerodinámicos: se pasan a ejes locales del objeto raíz
             rb.AddRelativeTorque(aero * (control + stability + damping));
         }
+
+        #region Rodaje en tierra
+        private const float GroundNormalMinY = 0.7f;           // superficie casi horizontal = suelo (igual que CrashHandler)
+        private const float GroundContactGrace = 0.1f;         // s: tolera rebotes pequeños sin "despegar"
+        private const float GearSideOffset = 0.25f;            // m: más al lado que esto = rueda principal izq./der.
+        private const float TireGripResponse = 0.15f;          // s: qué tan rápido las llantas anulan el derrape
+        private const int GearLeft = 0, GearRight = 1, GearCenter = 2;
+
+        private readonly float[] gearContactTime = { float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity };
+        private Vector3 groundNormalSum;
+        private Vector3 groundNormal = Vector3.up;
+
+        /// <summary>Anota qué ruedas del tren tocan el suelo en este paso de física (desde OnCollisionEnter/Stay).</summary>
+        private void RegisterGearContacts(Collision collision) {
+            if (landingGear.Count == 0 || IsOwnPart(collision.collider)) return;
+
+            Vector3 com = rb.worldCenterOfMass;
+            for (int i = 0; i < collision.contactCount; i++) {
+                ContactPoint c = collision.GetContact(i);
+                if (Mathf.Abs(c.normal.y) < GroundNormalMinY || !landingGear.Contains(c.thisCollider)) continue;
+
+                float side = Vector3.Dot(c.point - com, transform.right);
+                int gear = side < -GearSideOffset ? GearLeft : side > GearSideOffset ? GearRight : GearCenter;
+                gearContactTime[gear] = Time.fixedTime;
+                groundNormalSum += c.normal.y > 0f ? c.normal : -c.normal;
+            }
+        }
+
+        private bool GearTouching(int gear) => Time.fixedTime - gearContactTime[gear] <= GroundContactGrace;
+
+        /// <summary>
+        /// Rodaje: frenos, agarre lateral de las llantas y dirección (rueda de cola) con el mismo yaw del joystick.
+        /// Solo actúa con el tren en el suelo y se desvanece a medida que las alas cargan el peso: en vuelo no hace nada.
+        /// Todo se aplica en el centro de masa, sin momentos de cabeceo ni alabeo: frenar fuerte no hace capotar
+        /// al avión ni girar cerrado lo hace tocar el suelo con un ala.
+        /// </summary>
+        private void ApplyGroundHandling(float lift, Quaternion aero) {
+            // Dormido no llegan OnCollisionStay: conserva el contacto que tenía para que el yaw/frenos lo despierten
+            if (rb.IsSleeping()) {
+                for (int i = 0; i < gearContactTime.Length; i++)
+                    if (GearTouching(i)) gearContactTime[i] = Time.fixedTime;
+            }
+
+            bool left = GearTouching(GearLeft);
+            bool right = GearTouching(GearRight);
+            t_OnGround = left || right || GearTouching(GearCenter);
+
+            if (groundNormalSum.sqrMagnitude > 0f) groundNormal = groundNormalSum.normalized;
+            groundNormalSum = Vector3.zero;
+            if (!t_OnGround || rb.isKinematic) return;   // cinemático = congelado por CrashHandler
+
+            // 1 = todo el peso sobre las ruedas, 0 = lo cargan las alas (a punto de despegar)
+            float g = -Physics.gravity.y;
+            float load = Mathf.Clamp01(1f - lift / Mathf.Max(1f, rb.mass * g));
+            if (load <= 0f) return;
+
+            // Hacia dónde apunta el morro sobre el suelo
+            Vector3 up = groundNormal;
+            Vector3 heading = Vector3.ProjectOnPlane(transform.rotation * (aero * Vector3.forward), up);
+            if (heading.sqrMagnitude < 0.01f) return;
+            heading.Normalize();
+            Vector3 side = Vector3.Cross(up, heading);   // derecha del avión sobre el suelo
+
+            float dt = Time.fixedDeltaTime;
+            Vector3 vel = rb.linearVelocity;
+            float vForward = Vector3.Dot(vel, heading);
+            float vSide = Vector3.Dot(vel, side);
+            float groundSpeed = new Vector2(vForward, vSide).magnitude;
+
+            // 1) Frenos: solo frena la rueda que toca el suelo. Sin pasarse: detiene el avión, no lo hace ir en reversa
+            float brakeL = (input != null && left) ? input.BrakeLeft : 0f;
+            float brakeR = (input != null && right) ? input.BrakeRight : 0f;
+            float decel = Mathf.Min(0.5f * (brakeL + brakeR) * brakeDeceleration * load, Mathf.Abs(vForward) / dt);
+            rb.AddForce(-Mathf.Sign(vForward) * decel * heading, ForceMode.Acceleration);
+
+            // 2) Agarre lateral: las llantas no derrapan (hasta su límite de fricción)
+            float maxSideAccel = tireGrip * g * load;
+            float sideAccel = Mathf.Clamp(-vSide / Mathf.Max(TireGripResponse, dt), -maxSideAccel, maxSideAccel);
+            rb.AddForce(sideAccel * side, ForceMode.Acceleration);
+
+            // 3) Dirección: lleva la velocidad de giro a la que pide el yaw (+ freno diferencial). Con el yaw al centro
+            //    sostiene el rumbo. Como una rueda real, solo gira si el avión rueda: parado el giro máximo es 0, sube con
+            //    la velocidad (radio mínimo) y a alta velocidad vuelve a bajar para no pasar de groundTurnMaxLateralAccel
+            float differential = (brakeR - brakeL) * differentialBrakeSteering;
+            float steer = Mathf.Clamp((input != null ? input.Yaw : 0f) + differential, -1f, 1f);
+            float maxRate = Mathf.Min(groundTurnRateDeg * Mathf.Deg2Rad,
+                                      groundSpeed / Mathf.Max(0.1f, groundMinTurnRadius),
+                                      groundTurnMaxLateralAccel / Mathf.Max(0.1f, groundSpeed));
+            float yawRate = Vector3.Dot(rb.angularVelocity, up);
+            float yawAccel = (steer * maxRate - yawRate) / Mathf.Max(groundSteerResponse, dt) * load;
+            rb.AddTorque(up * yawAccel, ForceMode.Acceleration);   // aceleración angular directa: no depende de la masa
+        }
+        #endregion
 
         private void OnDrawGizmosSelected() {
             var body = GetComponent<Rigidbody>();

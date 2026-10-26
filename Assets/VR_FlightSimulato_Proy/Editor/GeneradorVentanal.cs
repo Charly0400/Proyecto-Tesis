@@ -15,7 +15,7 @@ public class GeneradorVentanal : EditorWindow
     const string NombreVentanal = "Ventanal";
     const string CarpetaMateriales = "Assets/VR_FlightSimulato_Proy/Materials/Hangar";
 
-    enum TipoVidrio { Transparente, Opaco }
+    internal enum TipoVidrio { Transparente, Opaco }
 
     // ---------- Parámetros ----------
     [SerializeField] List<Transform> paredes = new List<Transform>();
@@ -234,7 +234,7 @@ public class GeneradorVentanal : EditorWindow
         return m;
     }
 
-    static Material MaterialMarco()
+    internal static Material MaterialMarco()
     {
         var m = Cargar("Marco_Metal", out var ruta);
         if (m != null) return m;
@@ -247,7 +247,7 @@ public class GeneradorVentanal : EditorWindow
         return Guardar(m, ruta);
     }
 
-    static Material MaterialVidrio(TipoVidrio tipo)
+    internal static Material MaterialVidrio(TipoVidrio tipo)
     {
         string nombre = tipo == TipoVidrio.Transparente ? "Vidrio_Transparente" : "Vidrio_Opaco";
         var m = Cargar(nombre, out var ruta);

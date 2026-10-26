@@ -406,12 +406,20 @@ public class GeneradorLucesAerodromo : EditorWindow
     // Pedestal fijo sobre la torre y cabeza giratoria con media lente verde y media blanca.
     void Faro(Transform raiz, Material mVerde, Material mBlanca)
     {
-        var rs = torre.GetComponentsInChildren<Renderer>();
-        if (rs.Length == 0) { Debug.LogWarning("[Luces] La torre no tiene renderers; no puse el faro."); return; }
-        var b = rs[0].bounds;
-        foreach (var r in rs) b.Encapsulate(r.bounds);
+        // La torre generada (Tools > Torre de control) trae un 'PuntoFaro'; si no, se usa lo más alto de sus renderers.
+        Vector3 arriba;
+        Transform punto = null;
+        foreach (var t in torre.GetComponentsInChildren<Transform>(true)) if (t.name == "PuntoFaro") { punto = t; break; }
+        if (punto != null) arriba = punto.position;
+        else
+        {
+            var rs = torre.GetComponentsInChildren<Renderer>();
+            if (rs.Length == 0) { Debug.LogWarning("[Luces] La torre no tiene renderers; no puse el faro."); return; }
+            var b = rs[0].bounds;
+            foreach (var r in rs) b.Encapsulate(r.bounds);
+            arriba = new Vector3(b.center.x, b.max.y, b.center.z);
+        }
         float s = escala;
-        var arriba = new Vector3(b.center.x, b.max.y, b.center.z);
         metal.Caja(arriba + Vector3.up * (0.2f * s), new Vector3(0.5f, 0.4f, 0.5f) * s, Quaternion.identity);
 
         var cabeza = new GameObject("Faro");

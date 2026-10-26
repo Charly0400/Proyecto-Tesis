@@ -209,7 +209,7 @@ public class GeneradorLucesAerodromo : EditorWindow
         Undo.CollapseUndoOperations(grupoUndo);
         EditorSceneManager.MarkSceneDirty(raiz.scene);
         Selection.activeGameObject = raiz;
-        Debug.Log($"[Luces] {cuenta} aparatos generados; {omitidas} omitidos por chocar con hangares u otros objetos.");
+        Debug.Log($"[Luces] {cuenta} aparatos generados; {omitidas} omitidos por chocar con objetos o quedar bajo techo.");
     }
 
     void Combinar(Transform raiz, string nombre, Malla m, Material mat, StaticEditorFlags flags)
@@ -245,14 +245,15 @@ public class GeneradorLucesAerodromo : EditorWindow
         return new Vector3(p.x, centro.y, p.z);
     }
 
-    // Hay un hangar, tanque u otro objeto con collider donde iría la luz. No cuentan el Terrain
-    // ni los colliders planos (pavimento, suelos), que miden menos de 1 m de alto.
+    // Hay un hangar, tanque u otro objeto con collider donde iría la luz, o la luz quedaría bajo techo
+    // (dentro de un hangar). No cuentan el Terrain ni los colliders planos (pavimento, suelos),
+    // que miden menos de 1 m de alto.
     bool Ocupado(Vector3 suelo)
     {
         var centroLuz = suelo + Vector3.up * (0.6f * escala);
         foreach (var c in Physics.OverlapSphere(centroLuz, 0.5f * escala, ~0, QueryTriggerInteraction.Ignore))
             if (!(c is TerrainCollider) && c.bounds.size.y >= 1f) return true;
-        return false;
+        return Physics.Raycast(centroLuz, Vector3.up, 40f, ~0, QueryTriggerInteraction.Ignore);
     }
 
     bool SobrePavimento(Vector3 p, float margen)

@@ -16,6 +16,16 @@ public class ConstructorMalla
 
     public bool Vacio => v.Count == 0;
 
+    // Transformación aplicada a todo lo que se agregue (sirve para acostar o rotar piezas armadas sobre el eje Y).
+    public Matrix4x4 Matriz = Matrix4x4.identity;
+
+    void Agregar(Vector3 p, Vector3 normal, Vector2 coord)
+    {
+        v.Add(Matriz.MultiplyPoint3x4(p));
+        n.Add(Matriz.MultiplyVector(normal).normalized);
+        uv.Add(coord);
+    }
+
     // Cuadrilátero p0..p3 (en orden alrededor). Se voltea solo para que mire hacia 'normal'.
     // Con 'normales' (una por vértice) queda sombreado suave.
     public void Quad(Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3, Vector3 normal, Vector3[] normales = null)
@@ -27,7 +37,7 @@ public class ConstructorMalla
         if (Vector3.Dot(Vector3.Cross(q[1] - q[0], q[2] - q[0]), normal) < 0f)
         { System.Array.Reverse(q); System.Array.Reverse(nq); System.Array.Reverse(u); }
         int i = v.Count;
-        for (int k = 0; k < 4; k++) { v.Add(q[k]); n.Add(nq[k]); uv.Add(u[k]); }
+        for (int k = 0; k < 4; k++) Agregar(q[k], nq[k], u[k]);
         t.Add(i); t.Add(i + 1); t.Add(i + 2);
         t.Add(i); t.Add(i + 2); t.Add(i + 3);
     }
@@ -36,10 +46,19 @@ public class ConstructorMalla
     {
         if (Vector3.Dot(Vector3.Cross(p1 - p0, p2 - p0), normal) < 0f) (p1, p2) = (p2, p1);
         int i = v.Count;
-        v.Add(p0); v.Add(p1); v.Add(p2);
-        n.Add(normal); n.Add(normal); n.Add(normal);
-        uv.Add(Vector2.zero); uv.Add(Vector2.right); uv.Add(Vector2.up);
+        Agregar(p0, normal, Vector2.zero); Agregar(p1, normal, Vector2.right); Agregar(p2, normal, Vector2.up);
         t.Add(i); t.Add(i + 1); t.Add(i + 2);
+    }
+
+    // Tubo redondo entre dos puntos.
+    public void Tubo(Vector3 p0, Vector3 p1, float radio, int lados = 10)
+    {
+        var d = p1 - p0;
+        if (d.sqrMagnitude < 1e-6f) return;
+        var previa = Matriz;
+        Matriz = previa * Matrix4x4.TRS(p0, Quaternion.FromToRotation(Vector3.up, d.normalized), Vector3.one);
+        Prisma(Vector3.zero, radio, radio, d.magnitude, lados, true, false);
+        Matriz = previa;
     }
 
     // Cara rectangular centrada en 'c' con ejes 'a' y 'b'.

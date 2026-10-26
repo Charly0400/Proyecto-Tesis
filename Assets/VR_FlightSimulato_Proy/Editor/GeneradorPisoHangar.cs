@@ -21,7 +21,7 @@ public class GeneradorPisoHangar : EditorWindow
     const string RutaAmarillo = "Assets/VR_FlightSimulato_Proy/Materials/Pista/MarcasRodaje.mat";
     const string RutaNegro = "Assets/VR_FlightSimulato_Proy/Materials/Pista/MarcaNegra.mat";
 
-    enum Frente { Auto, MasX, MenosX, MasZ, MenosZ }
+    internal enum Frente { Auto, MasX, MenosX, MasZ, MenosZ }
 
     // ---------- Parámetros ----------
     [SerializeField] List<Transform> hangares = new List<Transform>();
@@ -83,7 +83,7 @@ public class GeneradorPisoHangar : EditorWindow
     }
 
     // ---------- Piso ----------
-    static Transform BuscarPiso(Transform hangar)
+    internal static Transform BuscarPiso(Transform hangar)
     {
         foreach (var t in hangar.GetComponentsInChildren<Transform>(true))
             if (t.name == NombrePiso && t.GetComponent<MeshFilter>() != null) return t;
@@ -91,7 +91,7 @@ public class GeneradorPisoHangar : EditorWindow
     }
 
     // Centro de la cara superior del piso y medio tamaño en metros a lo largo de sus ejes X y Z.
-    static Vector3 CentroPiso(Transform piso, out float mitadX, out float mitadZ)
+    internal static Vector3 CentroPiso(Transform piso, out float mitadX, out float mitadZ)
     {
         var b = piso.GetComponent<MeshFilter>().sharedMesh.bounds;
         var ls = piso.lossyScale;
@@ -156,7 +156,7 @@ public class GeneradorPisoHangar : EditorWindow
     }
 
     // El portón es el único lado por el que un rayo desde el centro sale sin chocar con el hangar.
-    static Frente DetectarFrente(Transform hangar, Transform piso, Vector3 centro, float mx, float mz)
+    internal static Frente DetectarFrente(Transform hangar, Transform piso, Vector3 centro, float mx, float mz)
     {
         var lados = new[] { Frente.MasX, Frente.MenosX, Frente.MasZ, Frente.MenosZ };
         var abiertos = new List<Frente>();
@@ -178,7 +178,7 @@ public class GeneradorPisoHangar : EditorWindow
         return Frente.MenosZ;
     }
 
-    static Vector3 DireccionMundo(Transform piso, Frente lado) => piso.TransformDirection(Local(lado)).normalized;
+    internal static Vector3 DireccionMundo(Transform piso, Frente lado) => piso.TransformDirection(Local(lado)).normalized;
 
     static Vector3 Local(Frente lado) => lado switch
     {

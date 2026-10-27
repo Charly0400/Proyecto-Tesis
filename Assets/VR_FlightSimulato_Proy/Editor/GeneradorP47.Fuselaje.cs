@@ -329,14 +329,17 @@ public partial class GeneradorP47
         var mv = MallaDe(vidrioPb);
         mv.Rejilla(Pw, null, i => P(CabX0 + 0.5f, 0f, 0.5f));
         Poner(vidrioPb, mv, mVidrio, null, false);
+        // Marco del parabrisas: arco de arriba, poste, base y el otro poste en un solo tubo continuo (sin rendijas; una
+        // esfera une el principio con el final). Los postes intermedios, más delgados, terminan dentro de ese tubo.
         var marcoPb = Vacio(tBody, "Parabrisas_Marco");
         var mm = MallaDe(marcoPb);
-        for (int k = 0; k < NC; k++)
-        {
-            mm.Tubo(Pw[0, k], Pw[0, k + 1], 0.016f, 0.016f, 6, false, UVPintura);
-            mm.Tubo(Pw[5, k], Pw[5, k + 1], 0.018f, 0.018f, 6, false, UVPintura);
-        }
-        foreach (int k in new[] { 0, 7, 17, NC }) mm.Tubo(Pw[0, k], Pw[5, k], 0.016f, 0.016f, 6, true, UVPintura);
+        var contorno = new List<Vector3>();
+        for (int k = NC; k >= 0; k--) contorno.Add(Pw[5, k]);
+        for (int k = 0; k <= NC; k++) contorno.Add(Pw[0, k]);
+        contorno.Add(Pw[5, NC]);
+        mm.TuboCurvo(contorno, 0.017f, 8, false, UVPintura);
+        mm.Elipsoide(Pw[5, NC], Vector3.one * 0.017f, Quaternion.identity, 6, 8, UVPintura);
+        foreach (int k in new[] { 7, 17 }) mm.Tubo(Pw[0, k], Pw[5, k], 0.015f, 0.015f, 8, false, UVPintura);
         Poner(marcoPb, mm, mFus);
 
         // Burbuja: PuertaCabina (riel fijo) > CabinaMovible (se desliza hacia atrás por su Z local).
@@ -351,16 +354,17 @@ public partial class GeneradorP47
         mc.Rejilla(Pc, null, i => P(xs[i], 0f, 0.55f));
         var trasero = new List<Vector3>();
         for (int k = 0; k <= NC; k++) trasero.Add(Pc[xs.Count - 1, k]);
+        trasero.Add(trasero[0]);   // cerrado: el abanico también cubre la base, entre los rieles
         mc.Tapa(trasero, Atras, Vector2.zero);
         Poner(vidrio, mc, mVidrio, null, false);
+        // Marco: riel derecho, arco delantero y riel izquierdo en un solo tubo continuo.
         var marco = Vacio(movible.transform, "Marco_Cabina", movible.transform.position);
         var mf = MallaDe(marco);
-        for (int k = 0; k < NC; k++) mf.Tubo(Pc[0, k], Pc[0, k + 1], 0.022f, 0.022f, 8, false, UVPintura);
-        for (int i = 0; i < xs.Count - 1; i++)
-        {
-            mf.Tubo(Pc[i, 0], Pc[i + 1, 0], 0.018f, 0.018f, 6, false, UVPintura);
-            mf.Tubo(Pc[i, NC], Pc[i + 1, NC], 0.018f, 0.018f, 6, false, UVPintura);
-        }
+        var trazo = new List<Vector3>();
+        for (int i = xs.Count - 1; i > 0; i--) trazo.Add(Pc[i, 0]);
+        for (int k = 0; k <= NC; k++) trazo.Add(Pc[0, k]);
+        for (int i = 1; i < xs.Count; i++) trazo.Add(Pc[i, NC]);
+        mf.TuboCurvo(trazo, 0.02f, 8, true, UVPintura);
         Poner(marco, mf, mFus);
         // Manija para agarrar y deslizar la burbuja (lado izquierdo del arco delantero, por dentro).
         Vector3 pm = PuntoCab(CabFrente + 0.06f, Mathf.PI * 0.80f) + new Vector3(0.05f, -0.02f, 0f);
@@ -403,14 +407,15 @@ public partial class GeneradorP47
             }
             m.Rejilla(Pbd, null, i => P(xb[i], 0f, -1f));
         }
+        // Paredes de los extremos como contornos cerrados (Tapa no une el último punto con el primero). La de atrás
+        // sube hasta el lomo por la piel exterior: es la mampara detrás del asiento, sin huecos hacia el fuselaje.
         var frente = new List<Vector3>(); var fondo = new List<Vector3>();
         for (int k = 0; k <= nt; k++) { frente.Add(Pi[0, k]); fondo.Add(Pi[xs.Count - 1, k]); }
+        for (float t = 180f - AnguloBorde; t >= AnguloBorde - 0.1f; t -= 5f) fondo.Add(PuntoFus(CabX1, t * Mathf.Deg2Rad));
+        frente.Add(frente[0]);
+        fondo.Add(fondo[0]);
         m.Tapa(frente, Atras, Vector2.zero);
         m.Tapa(fondo, -Atras, Vector2.zero);
-        // Mampara detrás de la cabeza: tapa el arco del lomo en CabX1
-        var arco = new List<Vector3>();
-        for (float t = AnguloBorde; t <= 180f - AnguloBorde + 0.1f; t += 5f) arco.Add(PuntoFus(CabX1, t * Mathf.Deg2Rad));
-        m.Tapa(arco, -Atras, Vector2.zero);
         Poner(go, m, mInterior);
 
         // Tablero, visera, mira, asiento con blindaje y consolas laterales

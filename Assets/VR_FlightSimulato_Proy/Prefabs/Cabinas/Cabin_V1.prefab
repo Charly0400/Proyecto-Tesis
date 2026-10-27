@@ -5049,7 +5049,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4156371308350153623}
   m_Layer: 0
-  m_Name: Cabin
+  m_Name: Cabin_V1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

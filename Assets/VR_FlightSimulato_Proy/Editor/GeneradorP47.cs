@@ -5,7 +5,8 @@
 // Piezas móviles: alerones, flaps, timón de profundidad (Hinge_Timon), timón de dirección (Hinge_Cola), hélice,
 // tren retráctil con pistones telescópicos y compuertas, rueda de cola orientable, cabina deslizable,
 // aletas de enfriamiento (cowl flaps) y compuertas del intercooler.
-// Materiales URP/Lit con texturas generadas (camuflaje, insignias, bandas, líneas de paneles).
+// Materiales URP/Lit con texturas generadas (camuflaje, insignias, bandas, líneas de paneles). Pintura por defecto:
+// Escuadrón de Pelea 201 de la Fuerza Aérea Expedicionaria Mexicana (Luzón, 1945).
 // Se guarda como prefab con sus mallas como assets. Menú: Tools > Avión P-47 Thunderbolt
 #if UNITY_EDITOR
 using System.Collections.Generic;
@@ -23,13 +24,18 @@ public partial class GeneradorP47 : EditorWindow
     const string CarpetaMateriales = "Assets/VR_FlightSimulato_Proy/Materials/P47";
     const string RutaFisicaTren = "Assets/VR_FlightSimulato_Proy/GearLanding.physicMaterial";
 
-    public enum Esquema { VerdeOlivaGris, MetalNatural }
+    public enum Esquema
+    {
+        VerdeOlivaGris, MetalNatural, [InspectorName("Escuadrón 201 (FAEM, 1945)")] Escuadron201,
+        [InspectorName("Fuerza Aérea Mexicana (1949, bandas amarillas)")] FAM1949
+    }
 
     // ---------- Parámetros ----------
     [SerializeField] Transform ubicacion;
     string nombre = "P47_Thunderbolt";
-    Esquema esquema = Esquema.VerdeOlivaGris;
-    bool bandasBlancas = true;
+    Esquema esquema = Esquema.Escuadron201;
+    bool bandasBlancas = true, bandasNegras = true;
+    string numero = "20";   // FAM 1949: número en los costados; la matrícula de la deriva es PZT-10 + número
     bool agregarFisica = true;
 
     // Altura de la línea de empuje sobre el suelo con el avión nivelado (cola arriba) y ángulo de tres puntos.
@@ -46,7 +52,22 @@ public partial class GeneradorP47 : EditorWindow
         ubicacion = (Transform)EditorGUILayout.ObjectField("Ubicación (opcional)", ubicacion, typeof(Transform), true);
         nombre = EditorGUILayout.TextField("Nombre del prefab", nombre);
         esquema = (Esquema)EditorGUILayout.EnumPopup("Pintura", esquema);
-        bandasBlancas = EditorGUILayout.Toggle("Bandas blancas (cofia y cola)", bandasBlancas);
+        if (esquema == Esquema.VerdeOlivaGris)
+            bandasBlancas = EditorGUILayout.Toggle("Bandas blancas (cofia y cola)", bandasBlancas);
+        else if (esquema == Esquema.Escuadron201)
+        {
+            bandasNegras = EditorGUILayout.Toggle("Bandas negras (Filipinas 1945)", bandasNegras);
+            EditorGUILayout.HelpBox("Escuadrón 201 en Luzón (1945): metal natural, nariz blanca festoneada, timón verde-blanco-rojo, " +
+                "triángulo de la FAM en el ala derecha y estrellas de la USAAF en el fuselaje y el ala izquierda. Las bandas negras " +
+                "con filete blanco eran obligatorias en Filipinas; su posición exacta es aproximada.", MessageType.None);
+        }
+        else if (esquema == Esquema.FAM1949)
+        {
+            numero = EditorGUILayout.TextField("Número del avión", numero);
+            EditorGUILayout.HelpBox($"P-47D de la Fuerza Aérea Mexicana en 1949 (como el \"20\" PZT-1020 de Aztec Models): metal natural, " +
+                "bandas amarillas, triángulos de la FAM, nariz blanca con chevrón rojo, flor de lis, el número en los costados y la " +
+                $"matrícula PZT-{Matricula} en la deriva.", MessageType.None);
+        }
         agregarFisica = EditorGUILayout.Toggle("Agregar física de vuelo", agregarFisica);
         if (agregarFisica)
             EditorGUILayout.HelpBox("Agrega Rigidbody, FlightControllerV3, AircraftPhysics (preset P-47, tren, centro de masa y " +

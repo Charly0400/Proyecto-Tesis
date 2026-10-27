@@ -68,9 +68,9 @@ public partial class GeneradorP47
     {
         GeoTren g = CalcularTren(1f);
         float yPozo = g.centroRetraido.x;
-        float dx = x - EjeTrenX, dy = Mathf.Abs(y) - yPozo;
+        float dx = x - XAvion(g.centroRetraido), dy = Mathf.Abs(y) - yPozo;
         if (dx * dx + dy * dy < RadioPozo * RadioPozo) return true;
-        return Mathf.Abs(dx) < AnchoCanal && Mathf.Abs(y) > yPozo && Mathf.Abs(y) < PivoteTrenY + 0.12f;
+        return Mathf.Abs(x - XCanal(y)) < AnchoCanal && Mathf.Abs(y) > yPozo && Mathf.Abs(y) < PivoteTrenY + 0.12f;
     }
 
     static float XAvion(Vector3 p) => EstacionOrigen - p.z;

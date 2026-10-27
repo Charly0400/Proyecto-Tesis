@@ -177,6 +177,49 @@ public partial class GeneradorP47
             if (r1 > 1e-4f) Tapa(anillo1, d, coord);
         }
 
+        // Tubo continuo a lo largo de una polilínea (marcos sin rendijas en los quiebres): un anillo por punto que gira
+        // con la curva (transporte paralelo) y se alarga en los quiebres (inglete) para conservar el grosor.
+        public void TuboCurvo(IList<Vector3> puntos, float radio, int lados = 8, bool tapas = true, Vector2 coord = default)
+        {
+            var pts = new List<Vector3>();
+            foreach (var p in puntos) if (pts.Count == 0 || (p - pts[pts.Count - 1]).sqrMagnitude > 1e-10f) pts.Add(p);
+            int n = pts.Count;
+            if (n < 2) return;
+            var P = new Vector3[n, lados + 1];
+            var U = new Vector2[n, lados + 1];
+            Vector3 tAnt = (pts[1] - pts[0]).normalized;
+            Vector3 nor = Vector3.Cross(tAnt, Mathf.Abs(tAnt.y) < 0.9f ? Vector3.up : Vector3.right).normalized;
+            for (int i = 0; i < n; i++)
+            {
+                int e = Mathf.Max(i, 1), s = Mathf.Min(i + 1, n - 1);
+                Vector3 entra = (pts[e] - pts[e - 1]).normalized, sale = (pts[s] - pts[s - 1]).normalized;
+                Vector3 t = (entra + sale).normalized;
+                nor = Vector3.ProjectOnPlane(Quaternion.FromToRotation(tAnt, t) * nor, t).normalized;
+                tAnt = t;
+                Vector3 bin = Vector3.Cross(t, nor), quiebre = sale - entra;
+                // En el plano bisector el corte del tubo es una elipse: 1/cos(θ/2) más larga en la dirección del quiebre
+                float alargar = 0f;
+                if (quiebre.sqrMagnitude > 1e-8f)
+                {
+                    alargar = 1f / Mathf.Sqrt(Mathf.Max(0.35f, 0.5f + 0.5f * Vector3.Dot(entra, sale))) - 1f;
+                    quiebre.Normalize();
+                }
+                for (int k = 0; k <= lados; k++)
+                {
+                    float ang = Mathf.PI * 2f * k / lados;
+                    Vector3 d = (nor * Mathf.Cos(ang) + bin * Mathf.Sin(ang)) * radio;
+                    P[i, k] = pts[i] + d + quiebre * (Vector3.Dot(d, quiebre) * alargar);
+                    U[i, k] = coord;
+                }
+            }
+            Rejilla(P, U, i => pts[i], costura: true);
+            if (!tapas) return;
+            var a0 = new List<Vector3>(); var a1 = new List<Vector3>();
+            for (int k = 0; k <= lados; k++) { a0.Add(P[0, k]); a1.Add(P[n - 1, k]); }
+            Tapa(a0, pts[0] - pts[1], coord);
+            Tapa(a1, pts[n - 1] - pts[n - 2], coord);
+        }
+
         // Elipsoide con semiejes 'radios' (en ejes de 'rot').
         public void Elipsoide(Vector3 centro, Vector3 radios, Quaternion rot, int lat = 10, int lon = 16, Vector2 coord = default)
         {

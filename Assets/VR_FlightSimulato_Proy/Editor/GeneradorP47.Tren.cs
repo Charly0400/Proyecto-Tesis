@@ -8,16 +8,19 @@ using UnityEngine;
 public partial class GeneradorP47
 {
     // Tren principal (lado derecho; el izquierdo es espejo). La pierna se acorta 23 cm al subir (telescópica)
-    // y se guarda hacia adentro con la rueda acostada en un pozo del ala.
+    // y se guarda hacia adentro con la rueda casi acostada en un pozo del ala (todo queda dentro del perfil).
     public const float EjeTrenX = 3.10f;
     const float PivoteTrenY = 1.93f, Abertura = 4f, RadioRueda = 0.432f, AnchoRueda = 0.229f, Aplastado = 0.025f,
                 Telescopio = 0.23f, DesvioRueda = 0.18f, RadioPozo = 0.47f, AnchoCanal = 0.12f, RadioPuertaPozo = 0.55f;
     // El hueco se corta por triángulos (borde dentado): forro y compuertas un poco más grandes para taparlo.
     const float RadioForro = 0.53f, MargenCanal = 0.05f;
+    // La pierna sube girando sobre un eje algo oblicuo: la rueda se guarda más atrás, donde el ala es más gruesa, y
+    // queda inclinada con el frente abajo como el perfil. Grados de barrido hacia atrás y de caída bajo el diedro.
+    const float SesgoRetraccion = 10f, CaidaRetraccion = 3.25f;
 
     struct GeoTren
     {
-        public Vector3 pivote, dirExt, ejeRueda, fondo, centroRueda, centroRetraido, ejeRetraido;
+        public Vector3 pivote, dirExt, ejeRueda, fondo, centroRueda, finRetraido, centroRetraido, ejeRetraido, ejeBisagra;
         public float largo;
         public Quaternion retraccion;
     }
@@ -26,7 +29,7 @@ public partial class GeneradorP47
     {
         var g = new GeoTren();
         float s = PivoteTrenY, a = Abertura * Mathf.Deg2Rad;
-        float zp = Ala.Punto(s, Ala.Xi(s, EjeTrenX), -1f).y + 0.06f;
+        float zp = Ala.Punto(s, Ala.Xi(s, EjeTrenX), -1f).y + 0.09f;   // el amortiguador (r 7.5 cm) guardado no asoma
         float zEje = -AlturaEmpuje + RadioRueda - Aplastado;
         g.largo = (zp - zEje - DesvioRueda * Mathf.Sin(a)) / Mathf.Cos(a);
         g.pivote = P(EjeTrenX, lado * s, zp);
@@ -34,18 +37,30 @@ public partial class GeneradorP47
         g.ejeRueda = new Vector3(-lado * Mathf.Cos(a), -Mathf.Sin(a), 0f);   // hacia adentro
         g.fondo = g.pivote + g.dirExt * g.largo;
         g.centroRueda = g.fondo + g.ejeRueda * DesvioRueda;
-        float d = Ala.diedro * Mathf.Deg2Rad;
-        g.retraccion = Quaternion.FromToRotation(g.dirExt, new Vector3(-lado * Mathf.Cos(d), -Mathf.Sin(d), 0f));
-        g.centroRetraido = g.pivote + g.retraccion * (g.dirExt * (g.largo - Telescopio) + g.ejeRueda * DesvioRueda);
+        float d = (Ala.diedro + CaidaRetraccion) * Mathf.Deg2Rad, b = SesgoRetraccion * Mathf.Deg2Rad;
+        g.retraccion = Quaternion.FromToRotation(g.dirExt, new Vector3(-lado * Mathf.Cos(d) * Mathf.Cos(b), -Mathf.Sin(d), -Mathf.Cos(d) * Mathf.Sin(b)));
+        g.finRetraido = g.pivote + g.retraccion * (g.dirExt * (g.largo - Telescopio));
+        g.centroRetraido = g.finRetraido + g.retraccion * (g.ejeRueda * DesvioRueda);
         g.ejeRetraido = g.retraccion * g.ejeRueda;
+        g.retraccion.ToAngleAxis(out _, out g.ejeBisagra);
         return g;
     }
+
+    // Estación del eje del canal de la pierna guardada a la semienvergadura |y| (va del pivote hacia adentro y atrás).
+    static float XCanal(float y) => EjeTrenX + (PivoteTrenY - Mathf.Abs(y)) * Mathf.Tan(SesgoRetraccion * Mathf.Deg2Rad);
 
     // Altura del intradós del ala en (x, y) del avión, como punto de Unity.
     static Vector3 Intrados(float x, float y, float desplazar = 0f)
     {
         float s = Mathf.Abs(y), lado = Mathf.Sign(y);
         return Ala.Punto(s, Ala.Xi(s, x), -1f, lado) + Vector3.up * desplazar;
+    }
+
+    // Altura del extradós del ala en (x, y) del avión, como punto de Unity.
+    static Vector3 Extrados(float x, float y, float desplazar = 0f)
+    {
+        float s = Mathf.Abs(y), lado = Mathf.Sign(y);
+        return Ala.Punto(s, Ala.Xi(s, x), 1f, lado) + Vector3.up * desplazar;
     }
 
     static LandingGearAnimator.Pieza Pieza(Transform t, LandingGearAnimator.TipoPieza tipo, Vector2 tramo,
@@ -68,11 +83,11 @@ public partial class GeneradorP47
             Vector3 adelante = Vector3.forward;
             Quaternion rExt = Quaternion.LookRotation(Vector3.ProjectOnPlane(adelante, g.dirExt).normalized, -g.dirExt);
 
-            // Pierna (amortiguador exterior y muñón)
+            // Pierna (amortiguador exterior y muñón a lo largo del eje de la bisagra, que no se mueve al girar)
             var pierna = Vacio(tGear, "TrenAterrizaje" + L, g.pivote, rExt);
             var mp = MallaDe(pierna);
-            mp.Tubo(g.pivote - g.dirExt * 0.05f, g.pivote + g.dirExt * 0.78f, 0.075f, 0.07f, 14);
-            mp.Tubo(g.pivote + adelante * 0.13f, g.pivote - adelante * 0.13f, 0.05f, 0.05f, 10);
+            mp.Tubo(g.pivote - g.dirExt * 0.05f, g.pivote + g.dirExt * 0.72f, 0.075f, 0.064f, 14);
+            mp.Tubo(g.pivote + g.ejeBisagra * 0.13f, g.pivote - g.ejeBisagra * 0.13f, 0.05f, 0.05f, 10);
             Poner(pierna, mp, mMetal, "Pierna");
             piezasTren.Add(Pieza(pierna.transform, LandingGearAnimator.TipoPieza.Recorrido, new Vector2(0.15f, 0.85f),
                 g.pivote, g.retraccion * rExt, g.pivote, rExt));
@@ -107,24 +122,23 @@ public partial class GeneradorP47
             ruedasTren.Add(new LandingGearAnimator.Rueda { rueda = rueda.transform, radio = RadioRueda, eje = Vector3.right });
 
             // Compuerta de la pierna: parche del intradós sobre el canal, armado con la pierna arriba.
-            float yPozo = Mathf.Abs(g.centroRetraido.x);
+            float yPozo = Mathf.Abs(g.centroRetraido.x), xPozo = XAvion(g.centroRetraido);
             var compuerta = Vacio(pierna.transform, "Compuerta_Pierna", g.pivote, rExt);
             var matArriba = Matrix4x4.TRS(g.pivote, g.retraccion * rExt, Vector3.one).inverse;
             Malla ext = new Malla { Matriz = matArriba }, inte = new Malla { Matriz = matArriba };
-            ParcheIntrados(ext, inte, EjeTrenX - AnchoCanal - MargenCanal - 0.01f, EjeTrenX + AnchoCanal + MargenCanal + 0.01f,
-                           yPozo + RadioPozo - 0.03f, PivoteTrenY + 0.18f, lado);
+            ParcheIntrados(ext, inte, AnchoCanal + MargenCanal + 0.01f, yPozo + RadioPozo - 0.03f, PivoteTrenY + 0.18f, lado);
             Poner(compuerta, ext, mAla);
             Poner(compuerta, inte, mInterior, "Interior", false);
 
             // Compuerta del pozo: bisagra a lo largo del borde interior; se abre hacia abajo.
             float yBis = yPozo - RadioPuertaPozo;
-            Vector3 bis = Intrados(EjeTrenX, lado * yBis);
+            Vector3 bis = Intrados(xPozo, lado * yBis);
             var puertaPozo = Vacio(tGear, "Compuerta_Rueda_" + L, bis);
             Malla pe = MallaDe(puertaPozo), pi = MallaDe(puertaPozo);
-            DiscoIntrados(pe, pi, EjeTrenX, lado * yPozo, RadioPuertaPozo, lado);
+            DiscoIntrados(pe, pi, xPozo, lado * yPozo, RadioPuertaPozo, lado);
             Poner(puertaPozo, pe, mAla);
             Poner(puertaPozo, pi, mInterior, "Interior", false);
-            Vector3 centroPuerta = Intrados(EjeTrenX, lado * yPozo) - bis;
+            Vector3 centroPuerta = Intrados(xPozo, lado * yPozo) - bis;
             float signo = (Quaternion.AngleAxis(10f, adelante) * centroPuerta).y < centroPuerta.y ? 1f : -1f;
             piezasTren.Add(Pieza(puertaPozo.transform, LandingGearAnimator.TipoPieza.Compuerta, new Vector2(0f, 0.18f),
                 bis, Quaternion.identity, bis, Quaternion.AngleAxis(signo * 95f, adelante)));
@@ -138,15 +152,15 @@ public partial class GeneradorP47
         ConstruirRuedaCola(fisica);
     }
 
-    // Parche rectangular del intradós (x0..x1, |y| entre y0 e y1): cara exterior (pintada) e interior.
-    static void ParcheIntrados(Malla ext, Malla inte, float x0, float x1, float y0, float y1, float lado)
+    // Parche del intradós a lo largo del canal de la pierna (|y| entre y0 e y1): cara exterior (pintada) e interior.
+    static void ParcheIntrados(Malla ext, Malla inte, float semiAncho, float y0, float y1, float lado)
     {
         const int nx = 4, ny = 8;
         var Pe = new Vector3[ny + 1, nx + 1]; var Ue = new Vector2[ny + 1, nx + 1]; var Pi = new Vector3[ny + 1, nx + 1];
         for (int i = 0; i <= ny; i++)
             for (int k = 0; k <= nx; k++)
             {
-                float y = Mathf.Lerp(y0, y1, (float)i / ny), x = Mathf.Lerp(x0, x1, (float)k / nx);
+                float y = Mathf.Lerp(y0, y1, (float)i / ny), x = XCanal(y) + Mathf.Lerp(-semiAncho, semiAncho, (float)k / nx);
                 Pe[i, k] = Intrados(x, lado * y, -0.004f);
                 Pi[i, k] = Intrados(x, lado * y, 0.004f);
                 Ue[i, k] = UVAla(y, Ala.Xi(y, x), -1f, lado);
@@ -174,56 +188,59 @@ public partial class GeneradorP47
         inte.Rejilla(Pi, null, i => c - Vector3.up, costura: true);
     }
 
-    // Cilindro del pozo alineado con la rueda guardada: el borde de abajo sigue el intradós.
+    // Cilindro del pozo alineado con la rueda guardada: el borde de abajo sigue el intradós y el techo nunca pasa del
+    // extradós (hacia el borde de ataque el ala adelgaza: ahí el techo baja pegado a la piel por dentro).
     static void Pozo(Malla m, GeoTren g)
     {
         Vector3 n = g.ejeRetraido.normalized;
         if (n.y < 0f) n = -n;
         Vector3 tope = g.centroRetraido + n * (AnchoRueda * 0.5f + 0.025f);
         Vector3 a = Vector3.ProjectOnPlane(Vector3.right, n).normalized, b = Vector3.Cross(n, a);
-        const int na = 32;
+        const int na = 32, nr = 4;
         var Pp = new Vector3[2, na + 1];
-        var anillo = new List<Vector3>();
+        var Pt = new Vector3[nr + 1, na + 1];
         for (int k = 0; k <= na; k++)
         {
             float ang = Mathf.PI * 2f * k / na;
-            Vector3 arriba = tope + (a * Mathf.Cos(ang) + b * Mathf.Sin(ang)) * RadioForro;
-            Vector3 suelo = Intrados(XAvion(arriba), arriba.x, -0.01f);
-            Pp[0, k] = new Vector3(arriba.x, suelo.y, arriba.z);
+            for (int i = 0; i <= nr; i++)
+            {
+                Vector3 p = tope + (a * Mathf.Cos(ang) + b * Mathf.Sin(ang)) * (RadioForro * i / nr);
+                p.y = Mathf.Min(p.y, Extrados(XAvion(p), p.x, -0.015f).y);
+                Pt[i, k] = p;
+            }
+            Vector3 arriba = Pt[nr, k];
+            Pp[0, k] = new Vector3(arriba.x, Intrados(XAvion(arriba), arriba.x, -0.003f).y, arriba.z);   // al ras: no asoma bajo la compuerta
             Pp[1, k] = arriba;
-            anillo.Add(arriba);
         }
         m.Rejilla(Pp, null, costura: true);   // filas hacia arriba, columnas alrededor de n: mira hacia el eje
-        m.Tapa(anillo, -n, Vector2.zero);
+        m.Rejilla(Pt, null, i => tope + n, costura: true);   // techo: mira hacia abajo
     }
 
-    // Canal donde se guarda la pierna: paredes delantera y trasera, techo y fondo.
+    // Canal donde se guarda la pierna (sigue la pierna guardada): paredes delantera y trasera, techo y fondo.
     static void Canal(Malla m, float y0, float y1, float lado)
     {
         const int ny = 6;
-        const float alto = 0.17f;
-        float xa = EjeTrenX - AnchoCanal - MargenCanal, xb = EjeTrenX + AnchoCanal + MargenCanal;
-        foreach (float xw in new[] { xa, xb })
+        const float alto = 0.17f, semi = AnchoCanal + MargenCanal;
+        float Y(int i) => Mathf.Lerp(y0, y1, (float)i / ny);
+        foreach (float lx in new[] { -1f, 1f })
         {
             var Pw = new Vector3[ny + 1, 2];
             for (int i = 0; i <= ny; i++)
             {
-                float y = Mathf.Lerp(y0, y1, (float)i / ny);
-                Pw[i, 0] = Intrados(xw, lado * y, -0.01f);
-                Pw[i, 1] = Intrados(xw, lado * y, alto);
+                float xw = XCanal(Y(i)) + lx * semi;
+                Pw[i, 0] = Intrados(xw, lado * Y(i), -0.003f);
+                Pw[i, 1] = Intrados(xw, lado * Y(i), alto);
             }
-            float xFuera = xw < EjeTrenX ? xw - 1f : xw + 1f;
-            m.Rejilla(Pw, null, i => P(xFuera, lado * Mathf.Lerp(y0, y1, (float)i / ny), Pw[i, 0].y));
+            m.Rejilla(Pw, null, i => P(XCanal(Y(i)) + lx * (semi + 1f), lado * Y(i), Pw[i, 0].y));
         }
         var Pt = new Vector3[ny + 1, 2];
         for (int i = 0; i <= ny; i++)
         {
-            float y = Mathf.Lerp(y0, y1, (float)i / ny);
-            Pt[i, 0] = Intrados(xa, lado * y, alto); Pt[i, 1] = Intrados(xb, lado * y, alto);
+            Pt[i, 0] = Intrados(XCanal(Y(i)) - semi, lado * Y(i), alto); Pt[i, 1] = Intrados(XCanal(Y(i)) + semi, lado * Y(i), alto);
         }
         m.Rejilla(Pt, null, i => Pt[i, 0] + Vector3.up);
-        Vector3 f0 = Intrados(xa, lado * y1, -0.01f), f1 = Intrados(xb, lado * y1, -0.01f);
-        m.Quad(f0, f1, f1 + Vector3.up * (alto + 0.01f), f0 + Vector3.up * (alto + 0.01f), new Vector3(-lado, 0f, 0f));
+        Vector3 f0 = Intrados(XCanal(y1) - semi, lado * y1, -0.003f), f1 = Intrados(XCanal(y1) + semi, lado * y1, -0.003f);
+        m.Quad(f0, f1, f1 + Vector3.up * (alto + 0.003f), f0 + Vector3.up * (alto + 0.003f), new Vector3(-lado, 0f, 0f));
     }
 
     void ConstruirRuedaCola(PhysicsMaterial fisica)

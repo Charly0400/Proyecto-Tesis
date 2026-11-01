@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 400" width="900" height="400">
+  <!-- Vista de lado: tres sendas que salen del PAPI (ángulos exagerados para que se lean) -->
+  <path d="M0 352 H900" stroke="#2a3f60" stroke-width="10"/>
+  <path d="M590 352 H900" stroke="#3a4f72" stroke-width="10"/>
+  <path d="M610 352 H650 M690 352 H730 M770 352 H810 M850 352 H890" stroke="#eef3fb" stroke-width="5" opacity="0.6"/>
+  <!-- Senda muy alta (4 blancas) -->
+  <path d="M560 336 L270 70" stroke="#fff4dc" stroke-width="5" stroke-dasharray="16 12" opacity="0.85"/>
+  <!-- Senda correcta (2 y 2) -->
+  <path d="M560 336 L270 195" stroke="#4ade80" stroke-width="7" stroke-dasharray="20 12"/>
+  <!-- Senda muy baja (4 rojas) -->
+  <path d="M560 336 L270 290" stroke="#ff3b30" stroke-width="5" stroke-dasharray="16 12" opacity="0.9"/>
+  <!-- Caja del PAPI -->
+  <rect x="538" y="320" width="48" height="30" rx="7" fill="#1a2c47" stroke="#4a6283" stroke-width="3"/>
+  <circle cx="548" cy="335" r="4.5" fill="#fff4dc"/><circle cx="558" cy="335" r="4.5" fill="#fff4dc"/>
+  <circle cx="568" cy="335" r="4.5" fill="#ff3b30"/><circle cx="577" cy="335" r="4.5" fill="#ff3b30"/>
+  <!-- P-47 sobre la senda correcta, bajando hacia la pista -->
+  <g transform="translate(372 245) rotate(26) scale(0.8)">
+    <ellipse cx="15" cy="10" rx="40" ry="4.5" fill="#9aa8bf"/>
+    <path d="M-100 -4 C -60 -10 20 -22 70 -20 L 92 -18 L 96 -14 L 96 14 L 92 18 L 70 20 C 20 22 -60 10 -100 4 Z" fill="#c9d3e3"/>
+    <path d="M-100 -2 L -96 -32 Q -88 -37 -82 -30 L -70 -8 Z" fill="#c9d3e3"/>
+    <path d="M-96 -32 Q -88 -37 -82 -30 L -78 -22 L -95 -20 Z" fill="#9aa8bf"/>
+    <ellipse cx="-86" cy="1" rx="17" ry="3.5" fill="#9aa8bf"/>
+    <path d="M8 -20 Q 26 -40 46 -21 Z" fill="#2aa6b8"/>
+    <path d="M60 -19 V 19 M-20 -13 V 13" stroke="#9aa8bf" stroke-width="2"/>
+    <rect x="84" y="-19" width="8" height="38" rx="2" fill="#ffb020"/>
+    <path d="M96 -9 Q 109 0 96 9 Z" fill="#9aa8bf"/>
+    <path d="M101 -42 V 42" stroke="#3a4a63" stroke-width="5" stroke-linecap="round"/>
+    <path d="M101 -42 V -34 M101 34 V 42" stroke="#ffb020" stroke-width="5" stroke-linecap="round"/>
+    <path d="M30 16 L 27 36" stroke="#6f7d95" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="27" cy="40" r="8" fill="#20252e" stroke="#6f7d95" stroke-width="2"/>
+    <circle cx="-92" cy="8" r="4" fill="#20252e"/>
+  </g>
+</svg>

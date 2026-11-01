@@ -516,7 +516,7 @@ Transform:
   m_GameObject: {fileID: 7213738025225207504}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.3, z: -1.0300002}
+  m_LocalPosition: {x: 5897.9976, y: 202.014, z: 5262.178}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -599,14 +599,16 @@ MonoBehaviour:
   m_StartingInteractionStrengthFilters: []
   handle: {fileID: 8906253379272641513}
   movingParent: {fileID: 0}
-  maxAngle: 20
-  sensitivity: 0.3
+  maxAngle: 14.514593
+  sensitivity: 7
   returnSpeed: 5
   returnToCenter: 1
   deadzone: 0.05
   yawSensitivity: 2
   yawDeadzone: 5
   enableYawControl: 1
+  showYawTwist: 1
+  maxYawTwistAngle: 35
   OnJoystickMove:
     m_PersistentCalls:
       m_Calls: []
@@ -635,7 +637,7 @@ MonoBehaviour:
     m_Name: "Bot\xF3n palanca"
     m_Type: 1
     m_ExpectedControlType: 
-    m_Id: afe7b6d7-dae8-497c-9891-4ff550b7cdcb
+    m_Id: 5682c8e1-6b18-4a7b-9479-3d9604e6353f
     m_Processors: 
     m_Interactions: 
     m_SingletonActionBindings: []

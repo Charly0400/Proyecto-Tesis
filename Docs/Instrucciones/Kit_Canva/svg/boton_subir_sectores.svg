@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="600" height="600">
+  <!-- Vista desde arriba: el botón SUBIR solo funciona en los costados de la cabina (verde) -->
+  <!-- Sectores laterales: 90° ± 35° desde la cabina (300,250), radio 270 -->
+  <path d="M300 250 L 521.2 95.1 A 270 270 0 0 1 521.2 404.9 Z" fill="#4ade80" opacity="0.16" stroke="#4ade80" stroke-width="3" stroke-dasharray="12 10"/>
+  <path d="M300 250 L 78.8 95.1 A 270 270 0 0 0 78.8 404.9 Z" fill="#4ade80" opacity="0.16" stroke="#4ade80" stroke-width="3" stroke-dasharray="12 10"/>
+  <!-- P-47 desde arriba, nariz hacia arriba -->
+  <ellipse cx="300" cy="300" rx="215" ry="34" fill="#9aa8bf"/>
+  <ellipse cx="300" cy="294" rx="212" ry="30" fill="#c9d3e3"/>
+  <ellipse cx="300" cy="470" rx="78" ry="16" fill="#9aa8bf"/>
+  <path d="M300 120 C 330 120 336 170 334 250 C 332 360 316 460 300 500 C 284 460 268 360 266 250 C 264 170 270 120 300 120 Z" fill="#c9d3e3" stroke="#9aa8bf" stroke-width="3"/>
+  <rect x="268" y="124" width="64" height="12" rx="6" fill="#ffb020"/>
+  <path d="M234 114 H366" stroke="#3a4a63" stroke-width="7" stroke-linecap="round"/>
+  <path d="M234 114 H248 M352 114 H366" stroke="#ffb020" stroke-width="7" stroke-linecap="round"/>
+  <ellipse cx="300" cy="250" rx="14" ry="34" fill="#2aa6b8"/>
+  <!-- Botón flotante del lado derecho -->
+  <rect x="430" y="226" width="96" height="48" rx="14" fill="#142238" stroke="#4ade80" stroke-width="5"/>
+  <path d="M452 250 H504" stroke="#4ade80" stroke-width="8" stroke-linecap="round"/>
+</svg>

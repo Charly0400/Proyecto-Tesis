@@ -134,6 +134,8 @@ namespace Charly.FlightController {
         public float AirspeedMps => t_AirspeedMps;
         public float AngleOfAttackDeg => t_AngleOfAttackDeg;
         public bool IsStalled => t_Stalled;
+        /// <summary>Ángulo de ataque (grados) donde empieza la pérdida.</summary>
+        public float StallAngleDeg => stallAngle;
         /// <summary>True si alguna rueda del tren (landingGear) toca el suelo.</summary>
         public bool IsOnGround => t_OnGround;
 

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 460" width="360" height="460">
+  <!-- Switch de encendido en ON con la guarda roja levantada -->
+  <rect x="60" y="60" width="240" height="340" rx="26" fill="#1a2c47" stroke="#4a6283" stroke-width="4"/>
+  <circle cx="84" cy="84" r="6" fill="#4a6283"/><circle cx="276" cy="84" r="6" fill="#4a6283"/>
+  <circle cx="84" cy="376" r="6" fill="#4a6283"/><circle cx="276" cy="376" r="6" fill="#4a6283"/>
+  <!-- Marcas ON (arriba, larga) y OFF (abajo, corta) -->
+  <path d="M150 100 H210" stroke="#4ade80" stroke-width="8" stroke-linecap="round"/>
+  <path d="M164 364 H196" stroke="#ff5a5a" stroke-width="8" stroke-linecap="round"/>
+  <!-- Tuerca y palanca cromada arriba (ON) -->
+  <circle cx="180" cy="250" r="36" fill="#0a1120" stroke="#4a6283" stroke-width="5"/>
+  <path d="M168 252 L 162 150 L 198 150 L 192 252 Z" fill="#c9d3e3"/>
+  <path d="M170 250 L 166 152 L 176 152 L 178 250 Z" fill="#eef3fb" opacity="0.7"/>
+  <circle cx="180" cy="146" r="21" fill="#eef3fb" stroke="#9aa8bf" stroke-width="3"/>
+  <!-- Guarda levantada: se ve por dentro, recargada arriba de la bisagra -->
+  <path d="M112 140 L 124 14 Q 126 6 134 6 L 226 6 Q 234 6 236 14 L 248 140 Z" fill="#b52a2a" stroke="#8a1f1f" stroke-width="4"/>
+  <path d="M132 130 L 140 24 L 220 24 L 228 130 Z" fill="#8a1f1f" opacity="0.55"/>
+  <rect x="100" y="132" width="160" height="18" rx="9" fill="#8a1f1f"/>
+</svg>

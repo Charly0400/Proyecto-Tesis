@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 460" width="360" height="460">
+  <!-- Switch de encendido en OFF con la guarda roja cerrada encima -->
+  <rect x="60" y="60" width="240" height="340" rx="26" fill="#1a2c47" stroke="#4a6283" stroke-width="4"/>
+  <circle cx="84" cy="84" r="6" fill="#4a6283"/><circle cx="276" cy="84" r="6" fill="#4a6283"/>
+  <circle cx="84" cy="376" r="6" fill="#4a6283"/><circle cx="276" cy="376" r="6" fill="#4a6283"/>
+  <!-- Marcas ON (arriba, larga) y OFF (abajo, corta) -->
+  <path d="M150 100 H210" stroke="#4ade80" stroke-width="8" stroke-linecap="round"/>
+  <path d="M164 364 H196" stroke="#ff5a5a" stroke-width="8" stroke-linecap="round"/>
+  <!-- Bisagra -->
+  <rect x="100" y="140" width="160" height="18" rx="9" fill="#8a1f1f"/>
+  <!-- Guarda cerrada -->
+  <rect x="112" y="150" width="136" height="214" rx="24" fill="#e03a3a" stroke="#8a1f1f" stroke-width="4"/>
+  <rect x="128" y="166" width="22" height="182" rx="11" fill="#ff7a7a" opacity="0.5"/>
+  <path d="M150 330 H210" stroke="#8a1f1f" stroke-width="6" stroke-linecap="round"/>
+</svg>

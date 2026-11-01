@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Diapositivas nuevas</title>
+<!--
+  Diapositivas nuevas del manual v2 (1080 x 1920), con el estilo del manual hecho en Canva:
+  Barlow para títulos y etiquetas, Noto Sans para el texto. Las ilustraciones son los SVG de svg/.
+  diapositivas_nuevas.html#1 = Tren de aterrizaje, #2 = Luces PAPI, #3 = hoja con todos los recursos (la usa exportar_kit.ps1).
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@500;600;700&family=Noto+Sans:wght@400;600;700&display=block" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1424; --card: #131f36; --line: #26385a; --text: #eef3fb; --muted: #9fb0c8;
+    --amber: #ffb020; --cyan: #3fd3ea; --green: #4ade80; --red: #ff5a5a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #05080f; font-family: "Noto Sans", sans-serif; color: var(--text); }
+  .slide {
+    width: 1080px; height: 1920px; margin: 0 auto 40px; position: relative; overflow: hidden;
+    background: var(--bg); padding: 92px 80px 80px; display: flex; flex-direction: column;
+  }
+  body.single { background: var(--bg); }
+  body.single .slide { display: none; margin: 0; }
+  body.single .slide.active { display: flex; }
+
+  .top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 22px; }
+  .tag { font-family: Barlow, sans-serif; font-weight: 700; font-size: 30px; letter-spacing: 9px; color: var(--amber); }
+  .num { font-family: Barlow, sans-serif; font-size: 30px; color: var(--muted); }
+  .num b { color: var(--text); font-weight: 700; }
+  .progress { display: flex; gap: 10px; margin-bottom: 52px; }
+  .progress i { flex: 1; height: 6px; border-radius: 3px; background: var(--line); }
+  .progress i.on { background: var(--amber); }
+
+  h1 { font-family: Barlow, sans-serif; font-weight: 700; font-size: 84px; line-height: 1.05; margin-bottom: 26px; }
+  .lead { font-size: 38px; line-height: 1.4; color: var(--muted); margin-bottom: 44px; }
+  .lead b { color: var(--text); font-weight: 700; }
+
+  .art { background: var(--card); border: 2px solid var(--line); border-radius: 34px; padding: 28px; margin-bottom: 40px; }
+  .art img, .art svg { display: block; }
+
+  .rows { display: flex; flex-direction: column; gap: 22px; margin-bottom: 40px; }
+  .row { display: flex; align-items: center; gap: 34px; background: var(--card); border: 2px solid var(--line); border-radius: 26px; padding: 26px 34px; }
+  .pill { flex: 0 0 250px; text-align: center; font-family: Barlow, sans-serif; font-weight: 700; font-size: 32px; letter-spacing: 1px;
+          border-radius: 14px; padding: 12px 10px; color: #0b1222; }
+  .pill.green { background: var(--green); } .pill.red { background: var(--red); } .pill.amber { background: var(--amber); }
+  .pill.cyan { background: var(--cyan); } .pill.off { background: #3a4660; color: var(--text); }
+  .row .v { font-size: 36px; line-height: 1.3; }
+  .row .v small { display: block; font-size: 29px; color: var(--muted); margin-top: 4px; }
+  .row .v b, .lead b.hl, .tip b.hl { color: var(--amber); }
+  .row img.papi { flex: 0 0 250px; width: 250px; }
+
+  .tip { margin-top: auto; display: flex; gap: 28px; align-items: center; border-radius: 26px; padding: 30px 36px;
+         font-size: 34px; line-height: 1.35; background: rgba(255,176,32,.08); border: 2px solid rgba(255,176,32,.5); }
+  .tip.warn { background: rgba(255,90,90,.08); border-color: rgba(255,90,90,.55); }
+  .tip .ic { flex: 0 0 auto; font-family: Barlow, sans-serif; font-weight: 700; font-size: 30px; letter-spacing: 4px;
+             border-radius: 12px; padding: 6px 16px; background: var(--amber); color: #1a1205; }
+  .tip.warn .ic { background: var(--red); color: #200606; }
+  .tip b { font-weight: 700; }
+
+  .label { font-family: Barlow, sans-serif; font-weight: 700; }
+
+  /* Hoja de recursos */
+  .sheet { height: auto; min-height: 1920px; }
+  .sheet .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; }
+  .sheet .cell { background: var(--card); border: 2px solid var(--line); border-radius: 22px; padding: 22px; text-align: center; }
+  .sheet .cell img { max-width: 100%; max-height: 260px; display: block; margin: 0 auto 14px; }
+  .sheet .cell div { font-family: Barlow, sans-serif; font-size: 26px; color: var(--muted); }
+  .sheet .colors { display: flex; gap: 14px; margin: 10px 0 34px; flex-wrap: wrap; }
+  .sheet .colors span { font-family: Barlow, sans-serif; font-size: 22px; color: #0b1222; padding: 14px 16px; border-radius: 12px; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ 09 TREN DE ATERRIZAJE ═══════════ -->
+<section class="slide" data-n="9">
+  <div class="top"><span class="tag">CABINA</span><span class="num"><b>09</b> / 21</span></div>
+  <div class="progress"></div>
+  <h1>Tren de aterrizaje</h1>
+  <p class="lead">La palanca con <b>perilla de llanta</b>, a la izquierda del tablero. Agárrala con el grip: <b class="hl">arriba</b> guarda las ruedas, <b class="hl">abajo</b> las saca.</p>
+  <div class="art">
+    <svg viewBox="0 0 860 470" width="860" height="470">
+      <image href="svg/palanca_tren_abajo.svg" x="40" y="30" width="300" height="390"/>
+      <image href="svg/palanca_tren_arriba.svg" x="520" y="30" width="300" height="390"/>
+      <text class="label" x="190" y="458" text-anchor="middle" font-size="32" fill="#4ade80">ABAJO · DN</text>
+      <text class="label" x="670" y="458" text-anchor="middle" font-size="32" fill="#9fb0c8">ARRIBA · UP</text>
+      <g fill="none" stroke="#ffb020" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M385 190 H 475"/><path d="M450 166 L 478 190 L 450 214"/>
+        <path d="M475 270 H 385"/><path d="M410 246 L 382 270 L 410 294"/>
+      </g>
+      <text class="label" x="430" y="150" text-anchor="middle" font-size="26" fill="#ffb020">EN EL AIRE</text>
+      <text class="label" x="430" y="335" text-anchor="middle" font-size="26" fill="#ffb020">PARA ATERRIZAR</text>
+    </svg>
+  </div>
+  <div class="rows">
+    <div class="row"><span class="pill green">VERDE</span><span class="v">Tren abajo y asegurado<small>Ya puedes aterrizar</small></span></div>
+    <div class="row"><span class="pill red">ROJA</span><span class="v">El tren se está moviendo<small>Tarda unos 6 segundos</small></span></div>
+    <div class="row"><span class="pill off">APAGADAS</span><span class="v">Tren arriba (guardado)</span></div>
+  </div>
+  <div class="tip warn"><span class="ic">OJO</span><span>En tierra no sube: la palanca <b>regresa sola</b>. Si aterrizas con el tren arriba tocas con la panza y <b>cuenta como choque</b>.</span></div>
+</section>
+
+<!-- ═══════════ 17 LUCES PAPI ═══════════ -->
+<section class="slide" data-n="17">
+  <div class="top"><span class="tag">VUELO</span><span class="num"><b>17</b> / 21</span></div>
+  <div class="progress"></div>
+  <h1>Luces PAPI</h1>
+  <p class="lead">4 luces a la <b>izquierda de la pista</b> que te dicen si bajas con el <b>ángulo correcto</b> para aterrizar.</p>
+  <div class="art" style="padding:24px 24px 14px">
+    <svg viewBox="0 0 860 420" width="860" height="420">
+      <image href="svg/papi_senda.svg" x="-20" y="10" width="900" height="400"/>
+      <text class="label" x="0" y="90" font-size="28" fill="#fff4dc">MUY ALTO</text>
+      <text class="label" x="0" y="215" font-size="28" fill="#4ade80">CORRECTO (3°)</text>
+      <text class="label" x="0" y="310" font-size="28" fill="#ff5a5a">MUY BAJO</text>
+      <text class="label" x="740" y="400" text-anchor="middle" font-size="26" fill="#9fb0c8">PISTA</text>
+      <text class="label" x="542" y="400" text-anchor="middle" font-size="26" fill="#9fb0c8">PAPI</text>
+    </svg>
+  </div>
+  <div class="rows">
+    <div class="row"><img class="papi" src="svg/papi_alto.svg"><span class="v"><b>4 blancas:</b> vas muy alto<small>Baja la nariz o reduce un poco</small></span></div>
+    <div class="row"><img class="papi" src="svg/papi_correcto.svg"><span class="v"><b>2 y 2:</b> ¡vas perfecto!<small>Mantén esa bajada hasta la pista</small></span></div>
+    <div class="row"><img class="papi" src="svg/papi_bajo.svg"><span class="v"><b>4 rojas:</b> vas muy bajo<small>Sube un poco la nariz o acelera</small></span></div>
+  </div>
+  <div class="tip"><span class="ic">TIP</span><span>Hay un PAPI en <b>cada extremo</b> de la pista. Para encontrar el aeródromo busca el <b>faro verde y blanco</b> que gira en la torre.</span></div>
+</section>
+
+<!-- ═══════════ HOJA DE RECURSOS (referencia del kit) ═══════════ -->
+<section class="slide sheet" data-n="0">
+  <div class="top"><span class="tag">KIT CANVA</span><span class="num">Recursos v2</span></div>
+  <h1 style="font-size:64px">Ilustraciones nuevas</h1>
+  <div class="colors">
+    <span style="background:#0d1424;color:#eef3fb">#0D1424 fondo</span>
+    <span style="background:#131f36;color:#eef3fb">#131F36 tarjeta</span>
+    <span style="background:#ffb020">#FFB020 ámbar</span>
+    <span style="background:#3fd3ea">#3FD3EA cian</span>
+    <span style="background:#4ade80">#4ADE80 verde</span>
+    <span style="background:#ff5a5a">#FF5A5A rojo</span>
+    <span style="background:#9fb0c8">#9FB0C8 texto suave</span>
+  </div>
+  <div class="grid">
+    <div class="cell"><img src="svg/palanca_tren_abajo.svg"><div>palanca_tren_abajo</div></div>
+    <div class="cell"><img src="svg/palanca_tren_moviendo.svg"><div>palanca_tren_moviendo</div></div>
+    <div class="cell"><img src="svg/palanca_tren_arriba.svg"><div>palanca_tren_arriba</div></div>
+    <div class="cell"><img src="svg/luz_verde.svg" style="height:110px;display:inline-block"> <img src="svg/luz_roja.svg" style="height:110px;display:inline-block"> <img src="svg/luz_apagada.svg" style="height:110px;display:inline-block"><div>luz_verde · luz_roja · luz_apagada</div></div>
+    <div class="cell"><img src="svg/switch_guarda_cerrada.svg"><div>switch_guarda_cerrada</div></div>
+    <div class="cell"><img src="svg/switch_guarda_abierta.svg"><div>switch_guarda_abierta</div></div>
+    <div class="cell"><img src="svg/papi_alto.svg"><img src="svg/papi_correcto.svg"><img src="svg/papi_bajo.svg"><div>papi_alto · papi_correcto · papi_bajo</div></div>
+    <div class="cell"><img src="svg/papi_senda.svg"><div>papi_senda</div></div>
+    <div class="cell"><img src="svg/aviso_perdida_encendido.svg"><img src="svg/aviso_perdida_apagado.svg"><div>aviso_perdida_encendido · apagado</div></div>
+    <div class="cell"><img src="svg/icono_vibracion.svg" style="height:150px;display:inline-block"> <img src="svg/icono_pitido.svg" style="height:150px;display:inline-block"><div>icono_vibracion · icono_pitido</div></div>
+    <div class="cell" style="grid-column: span 2"><img src="svg/boton_subir_sectores.svg" style="max-height:420px"><div>boton_subir_sectores</div></div>
+  </div>
+</section>
+
+<script>
+  // Barras de progreso de 21 segmentos
+  document.querySelectorAll('.slide').forEach(s => {
+    const bar = s.querySelector('.progress');
+    const n = +s.dataset.n;
+    if (bar) bar.innerHTML = Array.from({ length: 21 }, (_, j) => `<i class="${j < n ? 'on' : ''}"></i>`).join('');
+  });
+
+  // diapositivas_nuevas.html#N → solo esa (para exportar)
+  const slides = [...document.querySelectorAll('.slide')];
+  const n = parseInt(location.hash.slice(1), 10);
+  if (n >= 1 && n <= slides.length) {
+    document.body.classList.add('single');
+    slides[n - 1].classList.add('active');
+  }
+</script>
+</body>
+</html>

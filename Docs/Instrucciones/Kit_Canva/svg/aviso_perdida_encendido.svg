@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 200" width="640" height="200">
+  <!-- Barra de aviso de pérdida en la visera del tablero, encendida -->
+  <rect x="20" y="24" width="600" height="152" rx="40" fill="#ffb020" opacity="0.12"/>
+  <rect x="40" y="44" width="560" height="112" rx="30" fill="#ffb020" opacity="0.18"/>
+  <rect x="60" y="62" width="520" height="76" rx="22" fill="#1b222e" stroke="#4a6283" stroke-width="4"/>
+  <rect x="80" y="76" width="480" height="48" rx="16" fill="#ffb020"/>
+  <rect x="96" y="84" width="448" height="12" rx="6" fill="#fff1c9" opacity="0.7"/>
+  <circle cx="82" cy="100" r="5" fill="#4a6283"/><circle cx="558" cy="100" r="5" fill="#4a6283"/>
+</svg>

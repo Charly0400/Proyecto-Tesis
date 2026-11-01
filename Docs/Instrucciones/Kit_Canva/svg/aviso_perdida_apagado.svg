@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 200" width="640" height="200">
+  <!-- Barra de aviso de pérdida apagada -->
+  <rect x="60" y="62" width="520" height="76" rx="22" fill="#1b222e" stroke="#4a6283" stroke-width="4"/>
+  <rect x="80" y="76" width="480" height="48" rx="16" fill="#4a3a1c"/>
+  <circle cx="82" cy="100" r="5" fill="#4a6283"/><circle cx="558" cy="100" r="5" fill="#4a6283"/>
+</svg>

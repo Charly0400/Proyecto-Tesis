@@ -4704,6 +4704,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2335446494207175060}
+  - {fileID: 4500982795367855976}
   m_Father: {fileID: 1585289685131225253}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &3776626064830279698
@@ -7775,8 +7776,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3357059822574686633}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0.7071068, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalRotation: {x: 0.00022566316, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -0.040138066, y: -0.020862103, z: -0.079665184}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -10237,8 +10238,18 @@ MonoBehaviour:
   m_OffAngle: -45
   m_RotationSpeed: 10
   m_ActivationThreshold: 0.3
-  m_CustomAttachTransform: {fileID: 2335446494207175060}
-  m_UseDynamicAttach: 0
+  m_StartOn: 0
+  m_Sensitivity: 1.5
+  m_ToggleOnTap: 1
+  m_TapMaxTime: 0.35
+  m_TapMaxAngle: 6
+  m_HandAttachPoints:
+  - {fileID: 5432078564137997469}
+  - {fileID: 4325184798124966005}
+  m_HandGrabPoint: {fileID: 4500982795367855976}
+  m_HandRotationFollow: 0.35
+  m_HapticAmplitude: 0.5
+  m_HapticDuration: 0.06
   m_OnSwitchOn:
     m_PersistentCalls:
       m_Calls:
@@ -10284,12 +10295,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 18ad55086cb948e4da109d5c7dd7daca, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  leftHandPose: {fileID: 11400000, guid: 2df1a239165bcd44586bc655f980d4ed, type: 2}
-  rightHandPose: {fileID: 11400000, guid: 2df1a239165bcd44586bc655f980d4ed, type: 2}
+  leftHandPose: {fileID: 11400000, guid: d9de01c3b477c8948b387b7a7275fd67, type: 2}
+  rightHandPose: {fileID: 11400000, guid: d9de01c3b477c8948b387b7a7275fd67, type: 2}
   LeftHandAnimationPose: {fileID: 0}
   RightHandAnimationPose: {fileID: 0}
-  leftHandAttach: {fileID: 0}
-  rightHandAttach: {fileID: 0}
+  leftHandAttach: {fileID: 5432078564137997469}
+  rightHandAttach: {fileID: 4325184798124966005}
   hasAnimationPose: 0
   currentLeftHand: {fileID: 0}
   currentRightHand: {fileID: 0}
@@ -12674,7 +12685,7 @@ MonoBehaviour:
   bakeKeys: []
   bakeValues: []
   needsUpdate: 0
-  _baseInteractable: {fileID: 0}
+  _baseInteractable: {fileID: 3826556754264695835}
   onlyHighlightsWhenNotSelected: 1
 --- !u!1 &6186185362780256503
 GameObject:
@@ -14888,7 +14899,7 @@ MonoBehaviour:
   playOnlyIfClipFinished: 0
   playAsOneShot: 0
   destroyAfterPlaying: 0
-  interactable: {fileID: 0}
+  interactable: {fileID: 3826556754264695835}
 --- !u!82 &8966014849548064531
 AudioSource:
   m_ObjectHideFlags: 0
@@ -18698,8 +18709,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8770174940413934254}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0.7071068, w: -0.7071068}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalRotation: {x: 0.00022566316, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0.04775256, y: -0.021003455, z: -0.07927339}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -19144,6 +19155,37 @@ MonoBehaviour:
   m_BlockingMask:
     serializedVersion: 2
     m_Bits: 4294967295
+--- !u!1 &9130462186220753474
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4500982795367855976}
+  m_Layer: 0
+  m_Name: PuntaAgarre
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4500982795367855976
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9130462186220753474}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.00014513731, y: 0.000020232052, z: -0.048833493}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 898342929428634697}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &9184445489857944428
 GameObject:
   m_ObjectHideFlags: 0

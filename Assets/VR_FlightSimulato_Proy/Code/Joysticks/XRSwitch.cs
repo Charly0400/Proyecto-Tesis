@@ -1,9 +1,15 @@
-using XR.Interaction.Toolkit.Samples;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Interactors;
 
+    /// <summary>
+    /// Switch de palanca de dos posiciones (por ejemplo el encendido del motor) para VR.
+    /// La palanca gira sobre el eje X local de su pivote siguiendo a la mano: se mide cuánto gira la mano alrededor
+    /// de ese eje desde que se agarra, así no salta al agarrarla y no depende de la escala del avión.
+    /// Cambia de estado al acercarse al extremo (con histéresis), vibra el mando y dispara On / Off una sola vez por
+    /// cambio. Al soltarla vuelve a la posición del estado actual. Agarrar y soltar rápido sin moverla también la cambia.
+    /// </summary>
     public class XRSwitch : UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable {
         [Header("Switch Configuration")]
         [SerializeField]
@@ -27,18 +33,57 @@ using UnityEngine.XR.Interaction.Toolkit.Interactors;
         float m_RotationSpeed = 10f;
 
         [SerializeField]
-        [Tooltip("Threshold to trigger state change (0-1)")]
-        [Range(0.0f, 0.5f)]
+        [Tooltip("Qué tan cerca del extremo hay que llevar la palanca para que cambie de estado. " +
+                 "0.3 = al 70% del recorrido; para regresar hay que bajarla al 30%")]
+        [Range(0.05f, 0.5f)]
         float m_ActivationThreshold = 0.3f;
 
-        [Header("Attach Point Configuration")]
         [SerializeField]
-        [Tooltip("Custom attach transform for this interactable")]
-        Transform m_CustomAttachTransform = null;
+        [Tooltip("Estado al iniciar")]
+        bool m_StartOn = false;
 
         [SerializeField]
-        [Tooltip("If true, will create a dynamic attach point at grab position")]
-        bool m_UseDynamicAttach = true;
+        [Tooltip("Multiplica el giro de la mano: con 1 la palanca gira lo mismo que la mano alrededor del pivote")]
+        [Range(0.5f, 4f)]
+        float m_Sensitivity = 1.5f;
+
+        [Header("Toque rápido")]
+        [SerializeField]
+        [Tooltip("Agarrar y soltar rápido sin mover la palanca la cambia de estado")]
+        bool m_ToggleOnTap = true;
+
+        [SerializeField]
+        [Tooltip("Tiempo máximo del toque, en segundos")]
+        float m_TapMaxTime = 0.35f;
+
+        [SerializeField]
+        [Tooltip("Giro máximo de la mano para que cuente como toque, en grados")]
+        float m_TapMaxAngle = 6f;
+
+        [Header("Mano en la punta")]
+        [SerializeField]
+        [Tooltip("Attach points del XRHandPoser (pueden ser hijos de la palanca). Al iniciar se sacan de la palanca: " +
+                 "siguen la posición de la punta pero solo giran una parte de lo que gira la palanca, para que la " +
+                 "muñeca no se tuerza 90° entre ON y OFF. Su pose debe estar hecha con la palanca a 0°")]
+        Transform[] m_HandAttachPoints = new Transform[0];
+
+        [SerializeField]
+        [Tooltip("Punto de la palanca que toman los dedos (hijo de la palanca, en la punta). La mano gira alrededor de él, " +
+                 "así los dedos no se despegan de la punta. Si se deja vacío la mano gira alrededor del pivote")]
+        Transform m_HandGrabPoint = null;
+
+        [SerializeField]
+        [Tooltip("Qué parte del giro de la palanca sigue la mano (0 = no gira, 1 = gira igual que la palanca)")]
+        [Range(0f, 1f)]
+        float m_HandRotationFollow = 0.35f;
+
+        [Header("Vibración al cambiar")]
+        [SerializeField]
+        [Range(0f, 1f)]
+        float m_HapticAmplitude = 0.5f;
+
+        [SerializeField]
+        float m_HapticDuration = 0.06f;
 
         [Header("Events")]
         [SerializeField]
@@ -54,13 +99,22 @@ using UnityEngine.XR.Interaction.Toolkit.Interactors;
         UnityEventFloat m_OnValueChange = new UnityEventFloat();
 
         // State variables
-        private float m_CurrentValue = 0.5f; // 0=OFF, 1=ON
-        private bool m_IsOn = false;
+        private float m_CurrentValue; // 0=OFF, 1=ON
+        private bool m_IsOn;
         private IXRSelectInteractor m_CurrentInteractor;
-        private ControllerInputActionManager m_Controller;
-        private Quaternion m_TargetRotation;
-        private Transform m_OriginalAttachTransform;
-        private Transform m_DynamicAttachTransform;
+
+        // Datos del agarre actual
+        private float m_GrabHandAngle;
+        private float m_GrabValue;
+        private float m_GrabTime;
+        private float m_MaxHandTurn;
+        private bool m_ChangedDuringGrab;
+
+        // Con la palanca a 0° y en el espacio del padre del pivote: el punto de agarre respecto al pivote, y cada
+        // attach point respecto al punto de agarre
+        private Vector3 m_GrabNeutralOffset;
+        private Vector3[] m_AttachNeutralOffsets;
+        private Quaternion[] m_AttachNeutralRotations;
 
         /// <summary>
         /// Current switch state (true = ON, false = OFF)
@@ -79,23 +133,65 @@ using UnityEngine.XR.Interaction.Toolkit.Interactors;
         public UnityEvent OnSwitchOff => m_OnSwitchOff;
         public UnityEventFloat OnValueChange => m_OnValueChange;
 
-        void Start() {
-            InitializeSwitch();
+        private Transform PivotTransform => m_Pivot != null ? m_Pivot : m_Handle;
 
-            // Create dynamic attach transform if needed
-            if (m_UseDynamicAttach && m_DynamicAttachTransform == null) {
-                GameObject dynamicAttach = new GameObject("DynamicAttach");
-                dynamicAttach.transform.SetParent(transform);
-                dynamicAttach.transform.localPosition = Vector3.zero;
-                dynamicAttach.transform.localRotation = Quaternion.identity;
-                m_DynamicAttachTransform = dynamicAttach.transform;
-            }
+        protected override void Awake() {
+            base.Awake();
+
+            // Sin disparar eventos: es el estado inicial, no un cambio
+            m_IsOn = m_StartOn;
+            m_CurrentValue = m_IsOn ? 1f : 0f;
+            if (PivotTransform != null)
+                PivotTransform.localRotation = RotationFor(m_CurrentValue);
+            else
+                Debug.LogWarning($"{name}: el switch no tiene Handle ni Pivot asignado", this);
+
+            SetupHandAttachPoints();
         }
 
-        void InitializeSwitch() {
-            // Set initial rotation based on starting value
-            UpdateHandleRotation(m_IsOn ? 1f : 0f);
-            m_TargetRotation = m_Handle.localRotation;
+        void SetupHandAttachPoints() {
+            Transform pivot = PivotTransform;
+            int count = m_HandAttachPoints.Length;
+            m_AttachNeutralOffsets = new Vector3[count];
+            m_AttachNeutralRotations = new Quaternion[count];
+            if (pivot == null || pivot.parent == null) return;
+
+            // Quitar el giro actual de la palanca: así queda la pose con la palanca a 0°
+            Transform frame = pivot.parent;
+            Quaternion undo = Quaternion.Inverse(Quaternion.Euler(PivotAngle(), 0f, 0f));
+            Vector3 grab = m_HandGrabPoint != null ? frame.InverseTransformPoint(m_HandGrabPoint.position) : pivot.localPosition;
+            m_GrabNeutralOffset = undo * (grab - pivot.localPosition);
+            for (int i = 0; i < count; i++) {
+                Transform attach = m_HandAttachPoints[i];
+                if (attach == null) continue;
+                m_AttachNeutralOffsets[i] = undo * (frame.InverseTransformPoint(attach.position) - grab);
+                m_AttachNeutralRotations[i] = undo * (Quaternion.Inverse(frame.rotation) * attach.rotation);
+                // Ya no los mueve la palanca: los mueve UpdateHandAttachPoints
+                attach.SetParent(frame, true);
+            }
+            UpdateHandAttachPoints();
+        }
+
+        // Ángulo actual del pivote en X (se rota solo en X, ver RotationFor)
+        float PivotAngle() {
+            Quaternion q = PivotTransform.localRotation;
+            return Mathf.DeltaAngle(0f, 2f * Mathf.Atan2(q.x, q.w) * Mathf.Rad2Deg);
+        }
+
+        void UpdateHandAttachPoints() {
+            Transform pivot = PivotTransform;
+            if (pivot == null || pivot.parent == null || m_AttachNeutralOffsets == null) return;
+
+            float angle = PivotAngle();
+            Quaternion partial = Quaternion.Euler(angle * m_HandRotationFollow, 0f, 0f);
+            // El punto de agarre gira con la palanca; la mano gira solo una parte alrededor de él
+            Vector3 grab = pivot.localPosition + Quaternion.Euler(angle, 0f, 0f) * m_GrabNeutralOffset;
+            for (int i = 0; i < m_HandAttachPoints.Length; i++) {
+                Transform attach = m_HandAttachPoints[i];
+                if (attach == null) continue;
+                attach.localPosition = grab + partial * m_AttachNeutralOffsets[i];
+                attach.localRotation = partial * m_AttachNeutralRotations[i];
+            }
         }
 
         protected override void OnEnable() {
@@ -107,168 +203,120 @@ using UnityEngine.XR.Interaction.Toolkit.Interactors;
         protected override void OnDisable() {
             selectEntered.RemoveListener(OnSelectEntered);
             selectExited.RemoveListener(OnSelectExited);
-
-            if (m_CurrentInteractor != null) {
-                CleanupInteraction();
-            }
-
+            m_CurrentInteractor = null;
             base.OnDisable();
         }
 
         void OnSelectEntered(SelectEnterEventArgs args) {
             m_CurrentInteractor = args.interactorObject;
-            m_Controller = m_CurrentInteractor.transform.GetComponentInParent<ControllerInputActionManager>();
-
-            SetupAttachTransform(args);
-            UpdateSwitchValue();
+            m_GrabHandAngle = HandAngle();
+            m_GrabValue = m_CurrentValue;
+            m_GrabTime = Time.time;
+            m_MaxHandTurn = 0f;
+            m_ChangedDuringGrab = false;
         }
 
         void OnSelectExited(SelectExitEventArgs args) {
-            // Snap to nearest state when released
-            SnapToNearestState();
+            bool tap = m_ToggleOnTap && !m_ChangedDuringGrab &&
+                       m_MaxHandTurn < m_TapMaxAngle && Time.time - m_GrabTime < m_TapMaxTime;
+            if (tap)
+                ChangeState(!m_IsOn, args.interactorObject);
 
-            // Clean up attach transform
-            if (m_UseDynamicAttach && m_OriginalAttachTransform != null) {
-                var grabInteractor = m_CurrentInteractor as XRBaseInteractor;
-                if (grabInteractor != null) {
-                    grabInteractor.attachTransform = m_OriginalAttachTransform;
-                }
-            }
-
-            CleanupInteraction();
-        }
-
-        void SetupAttachTransform(SelectEnterEventArgs args) {
-            if (!m_UseDynamicAttach) return;
-
-            // Store original attach transform
-            var grabInteractor = args.interactorObject as XRBaseInteractor;
-            if (grabInteractor != null) {
-                m_OriginalAttachTransform = grabInteractor.attachTransform;
-
-                // Set dynamic attach position at grab point
-                if (m_DynamicAttachTransform != null) {
-                    m_DynamicAttachTransform.position = args.interactableObject.GetAttachTransform(args.interactorObject).position;
-                    m_DynamicAttachTransform.rotation = args.interactableObject.GetAttachTransform(args.interactorObject).rotation;
-                    grabInteractor.attachTransform = m_DynamicAttachTransform;
-                }
-            }
-        }
-
-        void CleanupInteraction() {
+            // Regresa a la posición del estado actual (si no pasó el umbral, vuelve a donde estaba)
+            m_CurrentValue = m_IsOn ? 1f : 0f;
+            m_OnValueChange?.Invoke(m_CurrentValue);
             m_CurrentInteractor = null;
-            m_Controller = null;
-            m_OriginalAttachTransform = null;
         }
 
         public override void ProcessInteractable(XRInteractionUpdateOrder.UpdatePhase updatePhase) {
             base.ProcessInteractable(updatePhase);
 
             if (updatePhase == XRInteractionUpdateOrder.UpdatePhase.Dynamic) {
-                if (isSelected) {
+                if (isSelected && m_CurrentInteractor != null) {
                     UpdateSwitchValue();
                 }
 
                 // Smoothly rotate handle
                 SmoothRotateHandle();
+                UpdateHandAttachPoints();
             }
         }
 
         void UpdateSwitchValue() {
-            if (m_CurrentInteractor == null) return;
+            float range = m_OnAngle - m_OffAngle;
+            if (Mathf.Approximately(range, 0f)) return;
 
-            // Get controller position in local space
-            Vector3 controllerPos = m_Controller.transform.position;
-            Vector3 localControllerPos = transform.InverseTransformPoint(controllerPos);
+            float handTurn = Mathf.DeltaAngle(m_GrabHandAngle, HandAngle());
+            m_MaxHandTurn = Mathf.Max(m_MaxHandTurn, Mathf.Abs(handTurn));
 
-            // Calculate vertical movement (using Y axis for up/down)
-            float verticalMovement = localControllerPos.y;
-
-            // Normalize movement to 0-1 range with deadzone
-            float normalizedValue = Mathf.Clamp01((verticalMovement + 1f) / 2f); // Assuming movement between -1 and 1
-
-            // Apply value with smoothing
-            m_CurrentValue = Mathf.Lerp(m_CurrentValue, normalizedValue, Time.deltaTime * 10f);
-
-            // Update visual
-            UpdateHandleRotation(m_CurrentValue);
-
-            // Trigger value change event
-            m_OnValueChange?.Invoke(m_CurrentValue);
-
-            // Update dynamic attach position if using
-            if (m_UseDynamicAttach && m_DynamicAttachTransform != null && m_CurrentInteractor != null) {
-                UpdateDynamicAttachPosition();
+            float value = Mathf.Clamp01(m_GrabValue + handTurn * m_Sensitivity / range);
+            if (!Mathf.Approximately(value, m_CurrentValue)) {
+                m_CurrentValue = value;
+                m_OnValueChange?.Invoke(m_CurrentValue);
             }
+
+            // Histéresis: para encender hay que llegar cerca de ON y para apagar cerca de OFF,
+            // así no parpadea si la mano se queda a la mitad
+            if (!m_IsOn && m_CurrentValue >= 1f - m_ActivationThreshold)
+                ChangeState(true, m_CurrentInteractor);
+            else if (m_IsOn && m_CurrentValue <= m_ActivationThreshold)
+                ChangeState(false, m_CurrentInteractor);
         }
 
-        void UpdateDynamicAttachPosition() {
-            // Keep dynamic attach at the grab point
-            var interactorTransform = m_CurrentInteractor.GetAttachTransform(this);
-            if (interactorTransform != null) {
-                m_DynamicAttachTransform.position = interactorTransform.position;
-            }
+        /// <summary>
+        /// Ángulo de la mano alrededor del eje X local del pivote, medido en el espacio de su padre: es el mismo eje
+        /// sobre el que gira la palanca, y como ángulo no le afecta la escala del avión.
+        /// </summary>
+        float HandAngle() {
+            Transform pivot = PivotTransform;
+            if (pivot == null || m_CurrentInteractor == null) return 0f;
+
+            Vector3 hand = m_CurrentInteractor.GetAttachTransform(this).position;
+            Vector3 v = pivot.parent != null
+                ? pivot.parent.InverseTransformPoint(hand) - pivot.localPosition
+                : hand - pivot.position;
+
+            // Euler(a, 0, 0) lleva el 'arriba' (0, 1, 0) a (0, cos a, sin a)
+            return Mathf.Atan2(v.z, v.y) * Mathf.Rad2Deg;
         }
 
-        void UpdateHandleRotation(float value) {
-            float angle = Mathf.Lerp(m_OffAngle, m_OnAngle, value);
-            m_TargetRotation = Quaternion.Euler(angle, 0f, 0f);
+        void ChangeState(bool on, IXRSelectInteractor interactor) {
+            if (on == m_IsOn) return;
 
-            // Check for state change
-            CheckStateChange(value);
+            m_IsOn = on;
+            if (isSelected) m_ChangedDuringGrab = true;
+
+            if (interactor is XRBaseInputInteractor inputInteractor && m_HapticAmplitude > 0f)
+                inputInteractor.SendHapticImpulse(m_HapticAmplitude, m_HapticDuration);
+
+            if (m_IsOn)
+                m_OnSwitchOn?.Invoke();
+            else
+                m_OnSwitchOff?.Invoke();
+        }
+
+        Quaternion RotationFor(float value) {
+            return Quaternion.Euler(Mathf.Lerp(m_OffAngle, m_OnAngle, value), 0f, 0f);
         }
 
         void SmoothRotateHandle() {
-            if (m_Handle == null) return;
+            Transform targetTransform = PivotTransform;
+            if (targetTransform == null) return;
 
-            Transform targetTransform = m_Pivot != null ? m_Pivot : m_Handle;
             targetTransform.localRotation = Quaternion.Slerp(
                 targetTransform.localRotation,
-                m_TargetRotation,
+                RotationFor(m_CurrentValue),
                 Time.deltaTime * m_RotationSpeed
             );
         }
 
-        void CheckStateChange(float value) {
-            bool newState = value > 0.5f;
-
-            if (newState != m_IsOn) {
-                m_IsOn = newState;
-
-                if (m_IsOn)
-                    m_OnSwitchOn?.Invoke();
-                else
-                    m_OnSwitchOff?.Invoke();
-            }
-        }
-
-        void SnapToNearestState() {
-            // Snap to ON if above threshold, OFF if below
-            bool shouldBeOn = m_CurrentValue > 0.5f;
-            float targetValue = shouldBeOn ? 1f : 0f;
-
-            m_CurrentValue = targetValue;
-            m_IsOn = shouldBeOn;
-
-            UpdateHandleRotation(targetValue);
-
-            // Trigger event for final state
-            if (shouldBeOn)
-                m_OnSwitchOn?.Invoke();
-            else
-                m_OnSwitchOff?.Invoke();
-        }
-
+        /// <summary>
+        /// Cambia el estado desde código o desde un botón. Solo dispara On / Off si de verdad cambia.
+        /// </summary>
         public void SetSwitchState(bool on) {
-            m_IsOn = on;
-            float targetValue = on ? 1f : 0f;
-            m_CurrentValue = targetValue;
-            UpdateHandleRotation(targetValue);
-
-            if (on)
-                m_OnSwitchOn?.Invoke();
-            else
-                m_OnSwitchOff?.Invoke();
+            m_CurrentValue = on ? 1f : 0f;
+            m_OnValueChange?.Invoke(m_CurrentValue);
+            ChangeState(on, null);
         }
 
         public void ToggleSwitch() {
@@ -276,17 +324,22 @@ using UnityEngine.XR.Interaction.Toolkit.Interactors;
         }
 
         void OnDrawGizmosSelected() {
-            if (m_Handle == null) return;
+            Transform pivot = PivotTransform;
+            if (pivot == null) return;
 
-            // Draw rotation arc
-            Vector3 handlePos = m_Handle.position;
-            Vector3 upPos = handlePos + Quaternion.Euler(m_OnAngle, 0, 0) * Vector3.forward * 0.2f;
-            Vector3 downPos = handlePos + Quaternion.Euler(m_OffAngle, 0, 0) * Vector3.forward * 0.2f;
+            // Hacia dónde apunta la palanca en ON (verde) y en OFF (rojo)
+            Transform frame = pivot.parent;
+            Vector3 onDir = Quaternion.Euler(m_OnAngle, 0f, 0f) * Vector3.up;
+            Vector3 offDir = Quaternion.Euler(m_OffAngle, 0f, 0f) * Vector3.up;
+            if (frame != null) {
+                onDir = frame.TransformDirection(onDir);
+                offDir = frame.TransformDirection(offDir);
+            }
 
             Gizmos.color = Color.green;
-            Gizmos.DrawLine(handlePos, upPos);
+            Gizmos.DrawLine(pivot.position, pivot.position + onDir.normalized * 0.1f);
             Gizmos.color = Color.red;
-            Gizmos.DrawLine(handlePos, downPos);
+            Gizmos.DrawLine(pivot.position, pivot.position + offDir.normalized * 0.1f);
         }
     }
 

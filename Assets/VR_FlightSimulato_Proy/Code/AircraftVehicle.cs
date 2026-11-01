@@ -29,6 +29,10 @@ public class AircraftVehicle : MonoBehaviour {
             proveedoresMovimiento = xrOrigin.GetComponentsInChildren<LocomotionProvider>();
             controladorPersonaje = xrOrigin.GetComponentInChildren<CharacterController>();
         }
+
+        // Sin sentarse no se pueden usar los controles de la cabina (el rayo los alcanza desde el suelo)
+        if (GetComponent<CockpitInteractionLock>() == null)
+            gameObject.AddComponent<CockpitInteractionLock>();
     }
 
     private void Start() {

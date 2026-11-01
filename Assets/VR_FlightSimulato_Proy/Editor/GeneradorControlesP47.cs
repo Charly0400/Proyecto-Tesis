@@ -31,7 +31,8 @@ public class GeneradorControlesP47 : EditorWindow
             "generado) quedan como hijos suyos en la cabina; si no, frente a la cámara de la escena. Falta conectar sus eventos " +
             "como en tu Thunderbolt V3: OnJoystickMove / OnYawInput de la palanca y On Value Change del acelerador. Si a la palanca " +
             "le copias ReleaseHandAtDistance y XRHandPoser del V3: 'distance' de 1 (mide desde la base y la empuñadura está a " +
-            "0.57 m) y los attach points dentro de la Empunadura.", MessageType.Info);
+            "0.57 m) y los attach points de Empunadura/AttachPoints (Pose_Fist). Al XRHandPoser del acelerador asígnale los de " +
+            "Palanca/GrabAttachPoints (Pose_SphereGrab), no los del ThrottleXR viejo: no se mueven y la mano no sigue a la palanca.", MessageType.Info);
         avion = (Transform)EditorGUILayout.ObjectField("Avión (opcional)", avion, typeof(Transform), true);
         EditorGUILayout.Space();
         if (GUILayout.Button("Generar palanca y acelerador", GUILayout.Height(32))) Generar();
@@ -124,6 +125,11 @@ public class GeneradorControlesP47 : EditorWindow
         col.center = new Vector3(0f, 0.06f, 0.005f);
         col.radius = 0.045f;
         col.height = 0.20f;
+        // Attach points del XRHandPoser para Pose_Fist: la mano rodea la empuñadura desde el costado de afuera
+        // (palma hacia adentro) con el índice arriba, junto al gatillo
+        var puntos = Hijo(agarre.transform, "AttachPoints", Vector3.zero, Quaternion.identity);
+        Hijo(puntos.transform, "leftHandAttach", new Vector3(0.0166f, 0.0519f, -0.0769f), new Quaternion(-0.00803f, -0.11804f, 0.1391f, 0.98318f));
+        Hijo(puntos.transform, "rightHandAttach", new Vector3(-0.0142f, 0.0511f, -0.0774f), new Quaternion(0.01036f, -0.11753f, 0.15815f, -0.98034f));
 
         // Botón de pulgar arriba, inclinado hacia el piloto
         var boton = Hijo(agarre.transform, "Boton", new Vector3(0f, 0.117f, -0.006f), Quaternion.Euler(-25f, 0f, 0f));
@@ -197,6 +203,11 @@ public class GeneradorControlesP47 : EditorWindow
         var esfera = palanca.AddComponent<SphereCollider>();
         esfera.center = new Vector3(0f, 0.125f, -0.01f);
         esfera.radius = 0.055f;
+        // Dónde se pone la mano al agarrar (los attach points del XRHandPoser): hijos de la Palanca para que la mano
+        // la siga. Para Pose_SphereGrab: la palma encima del pomo y los dedos hacia adelante, rodeándolo
+        var puntos = Hijo(palanca.transform, "GrabAttachPoints", Vector3.zero, Quaternion.identity);
+        Hijo(puntos.transform, "LeftHandAttach", new Vector3(0.002f, 0.1209f, -0.0937f), new Quaternion(-0.07176f, -0.06452f, -0.59841f, 0.79536f));
+        Hijo(puntos.transform, "RightHandAttach", new Vector3(-0.0005f, 0.1236f, -0.0942f), new Quaternion(0.0728f, -0.06285f, -0.58289f, -0.80684f));
 
         var th = raiz.AddComponent<ThrottleXRV2>();
         var so = new SerializedObject(th);

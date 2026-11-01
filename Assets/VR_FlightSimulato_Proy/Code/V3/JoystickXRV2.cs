@@ -22,6 +22,10 @@ namespace MikeNspired.XRIStarterKit {
         [SerializeField] private float yawSensitivity = 2.0f; // Sensibilidad para la rotaci�n
         [SerializeField] private float yawDeadzone = 5f; // Zona muerta en grados
         [SerializeField] private bool enableYawControl = true;
+        [Tooltip("La palanca gira sobre su eje siguiendo la muñeca (la mano agarrada gira con ella)")]
+        [SerializeField] private bool showYawTwist = true;
+        [Tooltip("Giro visual máximo de la palanca sobre su eje, en grados")]
+        [SerializeField] private float maxYawTwistAngle = 35f;
 
         [Header("Events")]
         public UnityEventVector2 OnJoystickMove;
@@ -38,6 +42,7 @@ namespace MikeNspired.XRIStarterKit {
         private Quaternion initialHandleRotation;
         private Vector2 currentInput;
         private float currentYawInput;
+        private float currentTwistAngle; // giro visual de la palanca sobre su eje, en grados
 
         // Control de rotaci�n (yaw)
         private Quaternion initialControllerRotation;
@@ -112,6 +117,7 @@ namespace MikeNspired.XRIStarterKit {
                 if (isSelected) {
                     UpdateJoystickPosition();
                     UpdateYawInput();
+                    UpdateVisual();
                 }
             }
         }
@@ -149,7 +155,6 @@ namespace MikeNspired.XRIStarterKit {
 
             currentInput = rawInput;
 
-            UpdateVisual();
             OnJoystickMove?.Invoke(currentInput);
         }
 
@@ -179,6 +184,9 @@ namespace MikeNspired.XRIStarterKit {
             if (yawAngle > 180f) yawAngle -= 360f;
             else if (yawAngle < -180f) yawAngle += 360f;
 
+            // Lo visual sigue a la muñeca tal cual (sin zona muerta) para que la mano no se despegue de la palanca
+            currentTwistAngle = showYawTwist ? Mathf.Clamp(yawAngle, -maxYawTwistAngle, maxYawTwistAngle) : 0f;
+
             if (Mathf.Abs(yawAngle) < yawDeadzone) {
                 currentYawInput = 0f;
             }
@@ -192,18 +200,22 @@ namespace MikeNspired.XRIStarterKit {
 
         void UpdateVisual() {
             if (handle != null) {
+                // Primero se inclina y luego gira sobre su propio eje (ya inclinado), como una palanca real
                 handle.localRotation = initialHandleRotation *
-                    Quaternion.Euler(currentInput.y * maxAngle, 0f, -currentInput.x * maxAngle);
+                    Quaternion.Euler(currentInput.y * maxAngle, 0f, -currentInput.x * maxAngle) *
+                    Quaternion.Euler(0f, currentTwistAngle, 0f);
             }
         }
 
         IEnumerator ReturnToCenter() {
             Vector2 startInput = currentInput;
+            float startTwist = currentTwistAngle;
             float elapsedTime = 0f;
 
             while (elapsedTime < 1f) {
                 elapsedTime += Time.deltaTime * returnSpeed;
                 currentInput = Vector2.Lerp(startInput, Vector2.zero, elapsedTime);
+                currentTwistAngle = Mathf.Lerp(startTwist, 0f, elapsedTime);
 
                 UpdateVisual();
                 OnJoystickMove?.Invoke(currentInput);
@@ -212,6 +224,7 @@ namespace MikeNspired.XRIStarterKit {
             }
 
             currentInput = Vector2.zero;
+            currentTwistAngle = 0f;
             UpdateVisual();
             OnJoystickMove?.Invoke(currentInput);
         }

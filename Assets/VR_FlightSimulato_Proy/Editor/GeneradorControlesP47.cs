@@ -23,7 +23,8 @@ public class GeneradorControlesP47 : EditorWindow
     const string CarpetaMateriales = "Assets/VR_FlightSimulato_Proy/Materials/P47";
     const string RutaPalanca = CarpetaPrefabs + "/P47_Palanca.prefab", RutaAcelerador = CarpetaPrefabs + "/P47_Acelerador.prefab",
                  RutaSwitch = CarpetaPrefabs + "/P47_SwitchEncendido.prefab", RutaTren = CarpetaPrefabs + "/P47_PalancaTren.prefab",
-                 RutaAviso = CarpetaPrefabs + "/P47_AvisoPerdida.prefab";
+                 RutaAviso = CarpetaPrefabs + "/P47_AvisoPerdida.prefab",
+                 RutaReset = CarpetaPrefabs + "/P47_BotonReset.prefab", RutaReaparecer = CarpetaPrefabs + "/P47_BotonReaparecer.prefab";
     // Switch y tren van en la cara trasera del tablero (x = 3.875): su eje Y local mira al piloto y su Z local hacia arriba
     static readonly Quaternion EnTablero = Quaternion.Euler(-90f, 0f, 0f);
     const float Recorrido = 0.075f;   // mitad del riel del acelerador
@@ -43,7 +44,8 @@ public class GeneradorControlesP47 : EditorWindow
             "Palanca/GrabAttachPoints (no los del ThrottleXR viejo: no se mueven y la mano no sigue a la palanca). " +
             "El switch de encendido (XRSwitch) va en el tablero: conecta su On Switch On / Off al motor como en el V3. " +
             "La palanca del tren ya mueve el LandingGearAnimator del avión y prende sus luces sola. El aviso de pérdida (barra " +
-            "ámbar en la visera, vibración de la palanca y pitido) lee AircraftPhysics solo.", MessageType.Info);
+            "ámbar en la visera, vibración de la palanca y pitido) lee AircraftPhysics solo. Los botones de reaparecer (casa) y " +
+            "reiniciar el nivel (flecha) se mantienen agarrados 2 s y no hay que conectarlos; reemplazan al botón de reset viejo.", MessageType.Info);
         avion = (Transform)EditorGUILayout.ObjectField("Avión (opcional)", avion, typeof(Transform), true);
         EditorGUILayout.Space();
         if (GUILayout.Button("Generar palanca y acelerador", GUILayout.Height(32))) Generar();
@@ -56,7 +58,8 @@ public class GeneradorControlesP47 : EditorWindow
             if (t != null && PrefabUtility.IsOutermostPrefabInstanceRoot(t.gameObject))
             {
                 string ruta = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(t.gameObject);
-                if (ruta == RutaPalanca || ruta == RutaAcelerador || ruta == RutaSwitch || ruta == RutaTren || ruta == RutaAviso)
+                if (ruta == RutaPalanca || ruta == RutaAcelerador || ruta == RutaSwitch || ruta == RutaTren || ruta == RutaAviso ||
+                    ruta == RutaReset || ruta == RutaReaparecer)
                     Undo.DestroyObjectImmediate(t.gameObject);
             }
         GeneradorMarcasPista.CrearCarpeta(CarpetaPrefabs);
@@ -72,15 +75,20 @@ public class GeneradorControlesP47 : EditorWindow
         // Aviso de pérdida: en el labio de la visera, a la vista bajo la mira K-14
         var aviso = ConstruirAvisoPerdida(true);
         Colocar(aviso, GeneradorP47.PuntoFus(3.985f, Mathf.PI * 0.5f, 0.94f) + Vector3.down * 0.035f, EnTablero, frente + Vector3.up * 0.3f);
+        // Botones de mantener presionado en el lado derecho del tablero: reaparecer más a la mano, reiniciar más lejos
+        var reaparecer = ConstruirBotonMantener("P47_BotonReaparecer", BotonMantener.Accion.ReaparecerEnBase, true);
+        Colocar(reaparecer, GeneradorP47.P(3.876f, 0.27f, 0.12f), EnTablero, frente + Vector3.right * 1.2f);
+        var reset = ConstruirBotonMantener("P47_BotonReset", BotonMantener.Accion.ReiniciarNivel, true);
+        Colocar(reset, GeneradorP47.P(3.876f, 0.39f, 0.12f), EnTablero, frente + Vector3.right * 1.4f);
         foreach (var (go, ruta) in new[] { (palanca, RutaPalanca), (acelerador, RutaAcelerador), (interruptor, RutaSwitch), (tren, RutaTren),
-                                           (aviso, RutaAviso) })
+                                           (aviso, RutaAviso), (reaparecer, RutaReaparecer), (reset, RutaReset) })
         {
             Undo.RegisterCreatedObjectUndo(go, "Generar controles P-47");
             PrefabUtility.SaveAsPrefabAssetAndConnect(go, ruta, InteractionMode.AutomatedAction);
             EditorSceneManager.MarkSceneDirty(go.scene);
         }
         Undo.CollapseUndoOperations(grupo); 
-        Selection.objects = new Object[] { palanca, acelerador, interruptor, tren, aviso };
+        Selection.objects = new Object[] { palanca, acelerador, interruptor, tren, aviso, reaparecer, reset };
         Debug.Log("[Controles P-47] Palanca, acelerador, switch y palanca del tren generados" + (avion != null ? $" en la cabina de '{avion.name}'" : ""));
     }
 
@@ -402,6 +410,86 @@ public class GeneradorControlesP47 : EditorWindow
         so.FindProperty("lente").objectReferenceValue = lente.GetComponent<Renderer>();
         so.FindProperty("encendida").objectReferenceValue = ambarOn;
         so.FindProperty("apagada").objectReferenceValue = ambarOff;
+        so.ApplyModifiedPropertiesWithoutUndo();
+        return raiz;
+    }
+
+    // ---------- Botones de mantener presionado ----------
+    // Mismos ejes que el switch. Placa, anillo de 16 segmentos que se encienden en ámbar y tapa con ícono:
+    // reaparecer = tapa azul con una casa; reiniciar = tapa roja con una flecha circular.
+    public static GameObject ConstruirBotonMantener(string nombre, BotonMantener.Accion accion, bool guardar)
+    {
+        bool casa = accion == BotonMantener.Accion.ReaparecerEnBase;
+        Material metalOscuro = Mat("P47C_MetalOscuro", new Color(0.12f, 0.12f, 0.13f), 0.6f, 0.4f, guardar),
+                 tapa = casa ? Mat("P47C_TapaAzul", new Color(0.10f, 0.28f, 0.62f), 0f, 0.55f, guardar)
+                             : Mat("P47C_Rojo", new Color(0.70f, 0.08f, 0.06f), 0f, 0.5f, guardar),
+                 icono = Mat("P47C_Icono", new Color(0.95f, 0.94f, 0.90f), 0f, 0.4f, guardar),
+                 segOn = MatLuz("P47C_LuzAmbarOn", new Color(1f, 0.48f, 0.02f), true, guardar, 1.2f),
+                 segOff = MatLuz("P47C_SegmentoOff", new Color(0.16f, 0.13f, 0.08f), false, guardar);
+
+        var raiz = new GameObject(nombre);
+        var mp = new Malla();
+        mp.Caja(new Vector3(0f, 0.003f, 0f), new Vector3(0.066f, 0.006f, 0.066f), Quaternion.identity);
+        foreach (float x in new[] { -0.026f, 0.026f })
+            foreach (float z in new[] { -0.026f, 0.026f })
+                mp.Tubo(new Vector3(x, 0.006f, z), new Vector3(x, 0.008f, z), 0.003f, 0.0026f, 8);
+        Poner(Hijo(raiz.transform, "Placa", Vector3.zero, Quaternion.identity), mp, metalOscuro, guardar);
+
+        // Anillo: 16 segmentos, empieza arriba (+Z) y avanza en sentido horario visto de frente
+        const int n = 16;
+        var segmentos = new Renderer[n];
+        for (int k = 0; k < n; k++)
+        {
+            float a = Mathf.PI * 0.5f - Mathf.PI * 2f * (k + 0.5f) / n;
+            var c = new Vector3(Mathf.Cos(a) * 0.025f, 0.0068f, Mathf.Sin(a) * 0.025f);
+            var ms = new Malla();
+            ms.Caja(c, new Vector3(0.0075f, 0.0016f, 0.004f), Quaternion.AngleAxis(-a * Mathf.Rad2Deg + 90f, Vector3.up));
+            var seg = Hijo(raiz.transform, $"Segmento_{k:00}", Vector3.zero, Quaternion.identity);
+            Poner(seg, ms, segOff, guardar);
+            segmentos[k] = seg.GetComponent<Renderer>();
+        }
+
+        // Tapa (se hunde) con el ícono encima
+        var boton = Hijo(raiz.transform, "Boton", Vector3.zero, Quaternion.identity);
+        var mt = new Malla();
+        mt.Tubo(new Vector3(0f, 0.004f, 0f), new Vector3(0f, 0.015f, 0f), 0.017f, 0.0165f, 28);
+        Poner(Hijo(boton.transform, "Tapa", Vector3.zero, Quaternion.identity), mt, tapa, guardar);
+        var mi = new Malla();
+        const float yi = 0.0153f;
+        if (casa)
+        {
+            var perfil = new[] { new Vector3(-0.008f, yi, -0.0075f), new Vector3(0.008f, yi, -0.0075f), new Vector3(0.008f, yi, 0.0015f),
+                                 new Vector3(0f, yi, 0.009f), new Vector3(-0.008f, yi, 0.0015f), new Vector3(-0.008f, yi, -0.0075f) };
+            mi.Tapa(perfil, Vector3.up, Vector2.zero);
+        }
+        else
+        {
+            var arco = new System.Collections.Generic.List<Vector3>();
+            for (int k = 0; k <= 16; k++)
+            {
+                float a = Mathf.Lerp(130f, 400f, k / 16f) * Mathf.Deg2Rad;
+                arco.Add(new Vector3(Mathf.Cos(a) * 0.0085f, yi, Mathf.Sin(a) * 0.0085f));
+            }
+            mi.TuboCurvo(arco, 0.0016f, 8);
+            Vector3 fin = arco[arco.Count - 1], tangente = (fin - arco[arco.Count - 2]).normalized, lado = Vector3.Cross(Vector3.up, tangente);
+            mi.Tapa(new[] { fin + tangente * 0.0045f, fin + lado * 0.0038f, fin - lado * 0.0038f, fin + tangente * 0.0045f }, Vector3.up, Vector2.zero);
+        }
+        Poner(Hijo(boton.transform, "Icono", Vector3.zero, Quaternion.identity), mi, icono, guardar);
+
+        var agarre = Hijo(raiz.transform, "Agarre", Vector3.zero, Quaternion.identity);
+        var caja = agarre.AddComponent<BoxCollider>();
+        caja.center = new Vector3(0f, 0.02f, 0f);
+        caja.size = new Vector3(0.07f, 0.05f, 0.07f);
+
+        var bm = raiz.AddComponent<BotonMantener>();
+        var so = new SerializedObject(bm);
+        so.FindProperty("accion").enumValueIndex = (int)accion;
+        so.FindProperty("boton").objectReferenceValue = boton.transform;
+        so.FindProperty("segmentoEncendido").objectReferenceValue = segOn;
+        so.FindProperty("segmentoApagado").objectReferenceValue = segOff;
+        var lista = so.FindProperty("segmentos");
+        lista.arraySize = n;
+        for (int k = 0; k < n; k++) lista.GetArrayElementAtIndex(k).objectReferenceValue = segmentos[k];
         so.ApplyModifiedPropertiesWithoutUndo();
         return raiz;
     }

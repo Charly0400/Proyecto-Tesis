@@ -114,6 +114,15 @@ namespace Charly.FlightController {
             else onEmpiezaASubir?.Invoke();
         }
 
+        /// <summary>
+        /// Tren abajo AL INSTANTE, sin animación ni eventos (al reaparecer): objetivo y progreso en 1 y piezas en su pose.
+        /// Ignora el bloqueo en tierra. Las ruedas (con sus colliders) quedan en su lugar en este mismo frame.
+        /// </summary>
+        public void BajarTrenInstantaneo() {
+            m_Objetivo = true;
+            Aplicar(1f);
+        }
+
         /// <summary>Lleva todas las piezas a la pose de 'progreso' (0 = arriba, 1 = abajo). También sirve en el editor.</summary>
         public void Aplicar(float progreso) {
             m_Progreso = Mathf.Clamp01(progreso);

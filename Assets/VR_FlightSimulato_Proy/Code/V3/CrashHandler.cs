@@ -256,8 +256,9 @@ namespace Charly.FlightController {
             m_CollisionMode = m_Rigidbody.collisionDetectionMode;
             m_Rigidbody.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
             m_Rigidbody.isKinematic = true;
-            // Switch abajo y palanca en 0 desde ya: el sonido de apagado queda tapado por el golpe y el fade
-            if (flightController != null) flightController.ResetControls();
+            // Switch abajo y palanca en 0 desde ya: el sonido de apagado queda tapado por el golpe y el fade.
+            // El tren no: el avión sigue congelado donde chocó; se baja al reaparecer
+            if (flightController != null) flightController.ResetControls(false);
 
             if (mapBoundary != null) {
                 m_BoundaryWasEnabled = mapBoundary.enabled;
@@ -290,25 +291,65 @@ namespace Charly.FlightController {
             onRespawned?.Invoke();
         }
 
-        /// <summary>Pone el avión en la pista, quieto, con el switch de motor abajo y la palanca en 0. El XR Origin es hijo del asiento, así que viaja con él.</summary>
+        /// <summary>
+        /// Pone el avión en la pista, quieto, con el switch de motor abajo, la palanca en 0 y el tren abajo (con su palanca
+        /// en ABAJO). El XR Origin es hijo del asiento, así que viaja con él.
+        /// </summary>
         private void Respawn() {
             transform.SetPositionAndRotation(m_SpawnPosition, m_SpawnRotation);
             m_Rigidbody.position = m_SpawnPosition;
             m_Rigidbody.rotation = m_SpawnRotation;
+
+            // Con el avión todavía cinemático: controles a cero (otra vez, por si el piloto movió algo durante el negro)
+            // y el tren abajo al instante. Así las ruedas y sus colliders ya están en su lugar antes de que vuelva la
+            // física, y el avión no aparece apoyado en el fuselaje ni se detecta un choque
+            if (flightController != null) flightController.ResetControls();
+
             m_Rigidbody.isKinematic = false;
             m_Rigidbody.collisionDetectionMode = m_CollisionMode;
             m_Rigidbody.linearVelocity = Vector3.zero;
             m_Rigidbody.angularVelocity = Vector3.zero;
-            Physics.SyncTransforms();
+            Physics.SyncTransforms();   // colliders del avión y de las ruedas en su nueva posición
 
-            // Otra vez por si el piloto movió algo durante el negro
-            if (flightController != null) flightController.ResetControls();
             if (mapBoundary != null && m_BoundaryWasEnabled) mapBoundary.enabled = true;
 
             m_LastVelocity = Vector3.zero;
             m_GraceEndTime = Time.time + graceTime;
             m_FlightStartTime = Time.time;
             m_Crashed = false;
+        }
+
+        /// <summary>
+        /// Regresa a la base sin chocar (botón de la cabina): fade a negro, avión en la pista quieto con el motor apagado
+        /// y fade de regreso. No cuenta como choque. No hace nada si ya está en un choque o reapareciendo.
+        /// </summary>
+        public void Reaparecer() {
+            if (m_Crashed) return;
+            m_Crashed = true;   // mientras dura no se detectan choques
+            m_Rigidbody.linearVelocity = Vector3.zero;
+            m_Rigidbody.angularVelocity = Vector3.zero;
+            m_CollisionMode = m_Rigidbody.collisionDetectionMode;
+            m_Rigidbody.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+            m_Rigidbody.isKinematic = true;
+            if (flightController != null) flightController.ResetControls(false);   // el tren se baja en Respawn
+            if (mapBoundary != null) {
+                m_BoundaryWasEnabled = mapBoundary.enabled;
+                mapBoundary.enabled = false;
+            }
+            StartCoroutine(SecuenciaReaparecer());
+        }
+
+        private IEnumerator SecuenciaReaparecer() {
+            m_ListenerVolume = AudioListener.volume;
+            yield return Fade(0f, 1f, fadeOutTime);
+            ShowMessage("Regresando a la base");
+            yield return new WaitForSeconds(1f);
+            HideMessage();
+            Respawn();
+            yield return Fade(1f, 0f, fadeInTime);
+            AudioListener.volume = m_ListenerVolume;
+            if (logEvents) Debug.Log("[Crash] Reaparición pedida desde la cabina", this);
+            onRespawned?.Invoke();
         }
 
         private IEnumerator Fade(float from, float to, float duration) {

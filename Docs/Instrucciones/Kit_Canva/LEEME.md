@@ -116,6 +116,11 @@ Ya está hecha: `diapositivas/Diapositiva_17_Luces_PAPI.png`. El texto:
 Kit_Canva/
 ├─ Manual_v2_nuevas_y_piezas.pptx  Las 2 nuevas + 5 páginas de "piezas" para las que cambian, todo editable
 ├─ crear_pptx.ps1                  Vuelve a generar el .pptx (usa PowerPoint)
+├─ Diapositiva_18_Perdida.pptx     La 18 (Pérdida de sustentación) rehecha completa con el aviso (crear_diapo_perdida.ps1)
+├─ perdida/                        Ilustración de la pérdida sola, PNG y editable (crear_imagen_perdida.ps1)
+├─ utilidades_pptx.ps1             Estilos comunes (filas, pasos, TIP/OJO) de los scripts de PowerPoint
+├─ Kit_de_piezas_controles.pptx    Kit por piezas de los controles nuevos (tren, switch con guarda, aviso, PAPI, iconos, SUBIR)
+├─ crear_kit_controles.ps1         Vuelve a generar ese kit
 ├─ diapositivas/   Las 2 nuevas, listas (1080 × 1920)
 ├─ svg/            Ilustraciones vectoriales (súbelas a Canva: se pueden recolorear)
 ├─ png/            Las mismas en PNG transparente al doble de tamaño (por si algún SVG no se ve bien)

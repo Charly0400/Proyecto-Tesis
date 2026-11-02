@@ -96,6 +96,8 @@ namespace Charly.FlightController {
 
         private JoystickXRV2 m_FlightStickV2;
         private ThrottleXRV2[] m_ThrottlesV2;
+        private LandingGearAnimator m_LandingGear;
+        private XRSwitch[] m_GearLevers;   // palancas del tren (XRSwitch con PalancaTren)
 
         public AircraftVehicle aircraft;
         private bool isInAircraft = false;
@@ -165,8 +167,15 @@ namespace Charly.FlightController {
             // La palanca en uso es ThrottleXRV2 (manda SetThrottle por el Inspector) y el switch manda
             // StartEngine/StopEngine. Se guardan para poder regresarlos a su posición al reiniciar.
             m_ThrottlesV2 = GetComponentsInChildren<ThrottleXRV2>(true);
+            // La palanca del tren también es un XRSwitch: no debe tomarse como switch de encendido
+            // (al reiniciar lo pondría en "apagado" = tren arriba)
+            var gearLevers = GetComponentsInChildren<PalancaTren>(true);
+            m_GearLevers = new XRSwitch[gearLevers.Length];
+            for (int i = 0; i < gearLevers.Length; i++) m_GearLevers[i] = gearLevers[i].GetComponent<XRSwitch>();
             if (engineSwitch == null)
-                engineSwitch = GetComponentInChildren<XRSwitch>(true);
+                foreach (var candidate in GetComponentsInChildren<XRSwitch>(true))
+                    if (candidate.GetComponent<PalancaTren>() == null) { engineSwitch = candidate; break; }
+            m_LandingGear = GetComponentInChildren<LandingGearAnimator>(true);
 
             Debug.Log("Controles VR configurados correctamente");
         }
@@ -264,15 +273,30 @@ namespace Charly.FlightController {
 
         /// <summary>
         /// Deja la cabina como al empezar: switch de encendido abajo (eso dispara su OnSwitchOff → StopEngine y apaga
-        /// el sonido del motor) y todas las palancas de propulsión en 0. Lo usa CrashHandler al chocar y al reaparecer.
+        /// el sonido del motor) y todas las palancas de propulsión en 0. Con 'landingGearDown' además deja el tren abajo
+        /// al instante y su palanca en ABAJO. CrashHandler lo usa al chocar (sin tren: el avión está congelado en el
+        /// lugar del choque) y al reaparecer (con tren, antes de devolverle la física al avión).
         /// </summary>
-        public void ResetControls() {
+        public void ResetControls(bool landingGearDown = true) {
             // Primero se sueltan: si la mano los sigue agarrando los volvería a mover
             // (y el switch, al soltarse, dispara su estado actual; por eso se apaga después)
             Release(engineSwitch);
             Release(m_FlightStickV2);
             if (m_ThrottlesV2 != null) {
                 foreach (var throttle in m_ThrottlesV2) Release(throttle);
+            }
+            if (landingGearDown && m_GearLevers != null) {
+                foreach (var lever in m_GearLevers) Release(lever);
+            }
+
+            if (landingGearDown) {
+                if (m_LandingGear != null) m_LandingGear.BajarTrenInstantaneo();
+                // Palanca en ABAJO: su OnSwitchOn pide BajarTren, que no hace nada porque el tren ya va abajo
+                if (m_GearLevers != null) {
+                    foreach (var lever in m_GearLevers) {
+                        if (lever != null) lever.SetSwitchState(true);
+                    }
+                }
             }
 
             if (engineSwitch != null)

@@ -516,7 +516,7 @@ Transform:
   m_GameObject: {fileID: 7213738025225207504}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 5897.9976, y: 202.014, z: 5262.178}
+  m_LocalPosition: {x: 5923.968, y: 200.30185, z: 5261.361}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -637,7 +637,7 @@ MonoBehaviour:
     m_Name: "Bot\xF3n palanca"
     m_Type: 1
     m_ExpectedControlType: 
-    m_Id: 5682c8e1-6b18-4a7b-9479-3d9604e6353f
+    m_Id: 6f715d70-0b31-44c1-a9dc-66427730530a
     m_Processors: 
     m_Interactions: 
     m_SingletonActionBindings: []

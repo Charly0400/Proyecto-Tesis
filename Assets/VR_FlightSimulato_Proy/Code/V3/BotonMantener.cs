@@ -11,10 +11,12 @@ using UnityEngine.XR.Interaction.Toolkit.Interactors;
 /// GeneradorControlesP47 lo configura solo.
 /// </summary>
 public class BotonMantener : UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable {
-    public enum Accion { Ninguna, ReiniciarNivel, ReaparecerEnBase }
+    // Las nuevas van al final: el valor se guarda como número en escenas y prefabs
+    public enum Accion { Ninguna, ReiniciarNivel, ReaparecerEnBase, ReaparecerEnHangar }
 
     [Header("Acción")]
     [SerializeField] private Accion accion = Accion.Ninguna;
+    public Accion AccionConfigurada => accion;
     [Tooltip("Segundos que hay que mantenerlo presionado")]
     [SerializeField] private float segundos = 2f;
     [Tooltip("Además de la acción (o en lugar de ella con 'Ninguna')")]
@@ -90,10 +92,12 @@ public class BotonMantener : UnityEngine.XR.Interaction.Toolkit.Interactables.XR
                 SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
                 break;
             case Accion.ReaparecerEnBase:
+            case Accion.ReaparecerEnHangar:
                 var choques = GetComponentInParent<CrashHandler>();
                 if (choques == null) choques = FindFirstObjectByType<CrashHandler>();
-                if (choques != null) choques.Reaparecer();
-                else Debug.LogWarning($"{name}: no se encontró un CrashHandler para reaparecer", this);
+                if (choques == null) Debug.LogWarning($"{name}: no se encontró un CrashHandler para reaparecer", this);
+                else if (accion == Accion.ReaparecerEnHangar) choques.ReaparecerEnHangar();
+                else choques.Reaparecer();
                 break;
         }
         onCompletado?.Invoke();

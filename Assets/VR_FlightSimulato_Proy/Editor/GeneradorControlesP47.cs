@@ -24,12 +24,13 @@ public class GeneradorControlesP47 : EditorWindow
     const string RutaPalanca = CarpetaPrefabs + "/P47_Palanca.prefab", RutaAcelerador = CarpetaPrefabs + "/P47_Acelerador.prefab",
                  RutaSwitch = CarpetaPrefabs + "/P47_SwitchEncendido.prefab", RutaTren = CarpetaPrefabs + "/P47_PalancaTren.prefab",
                  RutaAviso = CarpetaPrefabs + "/P47_AvisoPerdida.prefab",
-                 RutaReset = CarpetaPrefabs + "/P47_BotonReset.prefab", RutaReaparecer = CarpetaPrefabs + "/P47_BotonReaparecer.prefab";
+                 RutaReaparecer = CarpetaPrefabs + "/P47_BotonReaparecer.prefab", RutaHangar = CarpetaPrefabs + "/P47_BotonHangar.prefab";
     // Switch y tren van en la cara trasera del tablero (x = 3.875): su eje Y local mira al piloto y su Z local hacia arriba
     static readonly Quaternion EnTablero = Quaternion.Euler(-90f, 0f, 0f);
     const float Recorrido = 0.075f;   // mitad del riel del acelerador
 
     [SerializeField] Transform avion;
+    [SerializeField] bool[] marcados;
 
     [MenuItem("Tools/Controles P-47 (palanca y acelerador)")]
     static void Abrir() => GetWindow<GeneradorControlesP47>("Controles P-47");
@@ -44,62 +45,227 @@ public class GeneradorControlesP47 : EditorWindow
             "Palanca/GrabAttachPoints (no los del ThrottleXR viejo: no se mueven y la mano no sigue a la palanca). " +
             "El switch de encendido (XRSwitch) va en el tablero: conecta su On Switch On / Off al motor como en el V3. " +
             "La palanca del tren ya mueve el LandingGearAnimator del avión y prende sus luces sola. El aviso de pérdida (barra " +
-            "ámbar en la visera, vibración de la palanca y pitido) lee AircraftPhysics solo. Los botones de reaparecer (casa) y " +
-            "reiniciar el nivel (flecha) se mantienen agarrados 2 s y no hay que conectarlos; reemplazan al botón de reset viejo.", MessageType.Info);
+            "ámbar en la visera, vibración de la palanca y pitido) lee AircraftPhysics solo. Los botones de regresar a la pista " +
+            "(verde, pista) y al hangar (azul, casa) se mantienen agarrados 2 s y no hay que conectarlos; el del hangar usa " +
+            "'Hangar Point' del CrashHandler.", MessageType.Info);
         avion = (Transform)EditorGUILayout.ObjectField("Avión (opcional)", avion, typeof(Transform), true);
         EditorGUILayout.Space();
-        if (GUILayout.Button("Generar palanca y acelerador", GUILayout.Height(32))) Generar();
+
+        EditorGUILayout.LabelField("Qué regenerar", EditorStyles.boldLabel);
+        if (marcados == null || marcados.Length != Controles.Length) marcados = new bool[Controles.Length];
+        for (int i = 0; i < Controles.Length; i++)
+        {
+            var enEscena = Controles[i].Buscar(avion);
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                marcados[i] = EditorGUILayout.ToggleLeft(Controles[i].titulo, marcados[i], GUILayout.Width(170f));
+                EditorGUILayout.LabelField(enEscena != null ? enEscena.name : "no está: se crea", EditorStyles.miniLabel);
+            }
+        }
+        using (new EditorGUILayout.HorizontalScope())
+        {
+            if (GUILayout.Button("Todos")) for (int i = 0; i < marcados.Length; i++) marcados[i] = true;
+            if (GUILayout.Button("Ninguno")) for (int i = 0; i < marcados.Length; i++) marcados[i] = false;
+        }
+        EditorGUILayout.Space();
+        using (new EditorGUI.DisabledScope(System.Array.IndexOf(marcados, true) < 0))
+            if (GUILayout.Button("Regenerar lo marcado", GUILayout.Height(32))) RegenerarMarcados();
     }
 
-    void Generar()
+    // ---------- Qué se puede regenerar ----------
+    sealed class Control
     {
-        int grupo = Undo.GetCurrentGroup();
-        foreach (var t in Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
-            if (t != null && PrefabUtility.IsOutermostPrefabInstanceRoot(t.gameObject))
+        public string titulo, ruta;
+        public System.Func<bool, GameObject> construir;
+        public System.Func<Transform, bool> esEste;        // se reconoce por su componente: conserva el nombre que le hayas puesto
+        public Vector3 enCabina, enEscena;
+        public Quaternion rotCabina = Quaternion.identity;
+
+        // Primero entre los activos (la cabina vieja del V3 está apagada). Con 'Avión' solo busca dentro de él
+        public Transform Buscar(Transform avion)
+        {
+            foreach (var t in Object.FindObjectsByType<Transform>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+                if (esEste(t) && (avion == null || t.IsChildOf(avion))) return t;
+            if (avion != null)
+                foreach (var t in avion.GetComponentsInChildren<Transform>(true))
+                    if (esEste(t)) return t;
+            return null;
+        }
+    }
+
+    static bool EsBoton(Transform t, BotonMantener.Accion accion)
+    {
+        var b = t.GetComponent<BotonMantener>();
+        return b != null && b.AccionConfigurada == accion;
+    }
+
+    // El botón de la pista va antes que el del hangar: si este no existe, se coloca junto a aquel
+    static readonly Control[] Controles =
+    {
+        new Control { titulo = "Palanca de vuelo", ruta = RutaPalanca, construir = ConstruirPalanca, esEste = t => t.GetComponent<JoystickXRV2>() != null,
+                      enCabina = GeneradorP47.P(4.38f, 0f, -0.30f) },
+        new Control { titulo = "Acelerador", ruta = RutaAcelerador, construir = ConstruirAcelerador, esEste = t => t.GetComponent<ThrottleXRV2>() != null,
+                      enCabina = GeneradorP47.P(4.30f, -0.44f, 0.13f), enEscena = Vector3.left * 0.4f },
+        new Control { titulo = "Switch de encendido", ruta = RutaSwitch, construir = ConstruirSwitch,
+                      esEste = t => t.GetComponent<XRSwitch>() != null && t.GetComponent<PalancaTren>() == null,
+                      enCabina = GeneradorP47.P(3.876f, -0.27f, 0.12f), rotCabina = EnTablero, enEscena = Vector3.right * 0.4f },
+        new Control { titulo = "Palanca del tren", ruta = RutaTren, construir = ConstruirPalancaTren, esEste = t => t.GetComponent<PalancaTren>() != null,
+                      enCabina = GeneradorP47.P(3.876f, -0.42f, 0.27f), rotCabina = EnTablero, enEscena = Vector3.right * 0.8f },
+        // En el labio de la visera, a la vista bajo la mira K-14
+        new Control { titulo = "Aviso de pérdida", ruta = RutaAviso, construir = ConstruirAvisoPerdida, esEste = t => t.GetComponent<AvisoPerdida>() != null,
+                      enCabina = GeneradorP47.PuntoFus(3.985f, Mathf.PI * 0.5f, 0.94f) + Vector3.down * 0.035f, rotCabina = EnTablero, enEscena = Vector3.up * 0.3f },
+        new Control { titulo = "Botón de la pista", ruta = RutaReaparecer, esEste = t => EsBoton(t, BotonMantener.Accion.ReaparecerEnBase),
+                      construir = g => ConstruirBotonMantener("P47_BotonReaparecer", BotonMantener.Accion.ReaparecerEnBase, g),
+                      enCabina = GeneradorP47.P(3.876f, 0.27f, 0.12f), rotCabina = EnTablero, enEscena = Vector3.right * 1.2f },
+        new Control { titulo = "Botón del hangar", ruta = RutaHangar, esEste = t => EsBoton(t, BotonMantener.Accion.ReaparecerEnHangar),
+                      construir = g => ConstruirBotonMantener("P47_BotonHangar", BotonMantener.Accion.ReaparecerEnHangar, g),
+                      enCabina = GeneradorP47.P(3.876f, 0.39f, 0.12f), rotCabina = EnTablero, enEscena = Vector3.right * 1.4f },
+    };
+
+    // ---------- Regenerar ----------
+    // Cada control marcado se reemplaza donde esté (padre, posición, rotación, escala y nombre). Lo que no está marcado no se toca.
+    void RegenerarMarcados()
+    {
+        var aviso = new System.Text.StringBuilder();
+        for (int i = 0; i < Controles.Length; i++)
+        {
+            if (!marcados[i]) continue;
+            var viejo = Controles[i].Buscar(avion);
+            if (viejo == null) continue;
+            if (!SePuedeBorrar(viejo.gameObject))
             {
-                string ruta = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(t.gameObject);
-                if (ruta == RutaPalanca || ruta == RutaAcelerador || ruta == RutaSwitch || ruta == RutaTren || ruta == RutaAviso ||
-                    ruta == RutaReset || ruta == RutaReaparecer)
-                    Undo.DestroyObjectImmediate(t.gameObject);
+                EditorUtility.DisplayDialog("Controles P-47", $"'{viejo.name}' viene dentro de otro prefab y no se puede reemplazar desde la escena.\n\nNo se regeneró nada.", "OK");
+                return;
             }
+            var perdidas = ReportePerdidas(Controles[i], viejo);
+            if (perdidas.Count > 0) aviso.AppendLine($"{viejo.name}:").AppendLine("  " + string.Join("\n  ", perdidas));
+        }
+        if (aviso.Length > 0 && !EditorUtility.DisplayDialog("Controles P-47: se perdería esto", aviso + "\nPuedes deshacer la escena con Ctrl+Z, pero el prefab queda regenerado.", "Regenerar", "Cancelar"))
+            return;
+
+        int grupo = Undo.GetCurrentGroup();
         GeneradorMarcasPista.CrearCarpeta(CarpetaPrefabs);
         Vector3 frente = SceneView.lastActiveSceneView != null ? SceneView.lastActiveSceneView.pivot : Vector3.zero;
-        var palanca = ConstruirPalanca(true);
-        Colocar(palanca, GeneradorP47.P(4.38f, 0f, -0.30f), Quaternion.identity, frente);
-        var acelerador = ConstruirAcelerador(true);
-        Colocar(acelerador, GeneradorP47.P(4.30f, -0.44f, 0.13f), Quaternion.identity, frente + Vector3.left * 0.4f);
-        var interruptor = ConstruirSwitch(true);
-        Colocar(interruptor, GeneradorP47.P(3.876f, -0.27f, 0.12f), EnTablero, frente + Vector3.right * 0.4f);
-        var tren = ConstruirPalancaTren(true);
-        Colocar(tren, GeneradorP47.P(3.876f, -0.42f, 0.27f), EnTablero, frente + Vector3.right * 0.8f);
-        // Aviso de pérdida: en el labio de la visera, a la vista bajo la mira K-14
-        var aviso = ConstruirAvisoPerdida(true);
-        Colocar(aviso, GeneradorP47.PuntoFus(3.985f, Mathf.PI * 0.5f, 0.94f) + Vector3.down * 0.035f, EnTablero, frente + Vector3.up * 0.3f);
-        // Botones de mantener presionado en el lado derecho del tablero: reaparecer más a la mano, reiniciar más lejos
-        var reaparecer = ConstruirBotonMantener("P47_BotonReaparecer", BotonMantener.Accion.ReaparecerEnBase, true);
-        Colocar(reaparecer, GeneradorP47.P(3.876f, 0.27f, 0.12f), EnTablero, frente + Vector3.right * 1.2f);
-        var reset = ConstruirBotonMantener("P47_BotonReset", BotonMantener.Accion.ReiniciarNivel, true);
-        Colocar(reset, GeneradorP47.P(3.876f, 0.39f, 0.12f), EnTablero, frente + Vector3.right * 1.4f);
-        foreach (var (go, ruta) in new[] { (palanca, RutaPalanca), (acelerador, RutaAcelerador), (interruptor, RutaSwitch), (tren, RutaTren),
-                                           (aviso, RutaAviso), (reaparecer, RutaReaparecer), (reset, RutaReset) })
+        var creados = new System.Collections.Generic.List<Object>();
+        for (int i = 0; i < Controles.Length; i++)
         {
-            Undo.RegisterCreatedObjectUndo(go, "Generar controles P-47");
-            PrefabUtility.SaveAsPrefabAssetAndConnect(go, ruta, InteractionMode.AutomatedAction);
-            EditorSceneManager.MarkSceneDirty(go.scene);
+            if (!marcados[i]) continue;
+            var c = Controles[i];
+            var viejo = c.Buscar(avion);
+            var nuevo = c.construir(true);
+            if (viejo != null)
+            {
+                nuevo.name = viejo.name;
+                CopiarPose(viejo, nuevo.transform);
+                nuevo.transform.SetSiblingIndex(viejo.GetSiblingIndex());
+                Undo.DestroyObjectImmediate(viejo.gameObject);
+            }
+            else if (c.ruta == RutaHangar && Controles[i - 1].Buscar(avion) is Transform pista)
+            {
+                // Junto al botón de la pista, a 1.25 anchos de placa
+                CopiarPose(pista, nuevo.transform);
+                nuevo.transform.position = pista.position - pista.right * (0.066f * 1.25f * pista.lossyScale.x);
+            }
+            else if (avion != null)
+            {
+                nuevo.transform.SetParent(avion, false);
+                nuevo.transform.SetLocalPositionAndRotation(c.enCabina, c.rotCabina);
+            }
+            else nuevo.transform.SetPositionAndRotation(frente + c.enEscena, c.rotCabina);
+
+            Undo.RegisterCreatedObjectUndo(nuevo, "Regenerar controles P-47");
+            PrefabUtility.SaveAsPrefabAssetAndConnect(nuevo, c.ruta, InteractionMode.AutomatedAction);
+            EditorSceneManager.MarkSceneDirty(nuevo.scene);
+            creados.Add(nuevo);
         }
-        Undo.CollapseUndoOperations(grupo); 
-        Selection.objects = new Object[] { palanca, acelerador, interruptor, tren, aviso, reaparecer, reset };
-        Debug.Log("[Controles P-47] Palanca, acelerador, switch y palanca del tren generados" + (avion != null ? $" en la cabina de '{avion.name}'" : ""));
+        Undo.CollapseUndoOperations(grupo);
+        Selection.objects = creados.ToArray();
+        Debug.Log($"[Controles P-47] {creados.Count} control(es) regenerado(s). Guarda la escena para conservarlos.");
     }
 
-    void Colocar(GameObject go, Vector3 enCabina, Quaternion rotCabina, Vector3 enEscena)
+    static void CopiarPose(Transform de, Transform a)
     {
-        if (avion != null)
+        a.SetParent(de.parent, false);
+        a.SetLocalPositionAndRotation(de.localPosition, de.localRotation);
+        a.localScale = de.localScale;
+    }
+
+    static bool SePuedeBorrar(GameObject go) =>
+        !PrefabUtility.IsPartOfPrefabInstance(go) || PrefabUtility.IsOutermostPrefabInstanceRoot(go) || PrefabUtility.IsAddedGameObjectOverride(go);
+
+    // ---------- Qué se perdería ----------
+    // Compara el control de la escena con uno recién construido (temporal, sin guardar nada).
+    public static System.Collections.Generic.List<string> ReportePerdidas(string tituloControl, Transform avion)
+    {
+        foreach (var c in Controles)
+            if (c.titulo == tituloControl && c.Buscar(avion) is Transform viejo) return ReportePerdidas(c, viejo);
+        return new System.Collections.Generic.List<string>();
+    }
+
+    static System.Collections.Generic.List<string> ReportePerdidas(Control c, Transform viejo)
+    {
+        var r = new System.Collections.Generic.List<string>();
+        var limpio = c.construir(false);
+        try
         {
-            go.transform.SetParent(avion, false);
-            go.transform.SetLocalPositionAndRotation(enCabina, rotCabina);
+            foreach (var t in viejo.GetComponentsInChildren<Transform>(true))
+            {
+                string ruta = t == viejo ? "" : AnimationUtility.CalculateTransformPath(t, viejo);
+                var par = ruta.Length == 0 ? limpio.transform : limpio.transform.Find(ruta);
+                if (par == null)
+                {
+                    // Solo el más alto de cada rama agregada
+                    if (t == viejo || limpio.transform.Find(AnimationUtility.CalculateTransformPath(t.parent, viejo)) != null || t.parent == viejo)
+                        r.Add($"objeto agregado: {ruta}");
+                    continue;
+                }
+                foreach (var comp in t.GetComponents<Component>())
+                {
+                    if (comp == null) continue;
+                    string dondeC = ruta.Length == 0 ? comp.GetType().Name : $"{ruta} / {comp.GetType().Name}";
+                    if (comp is Transform) continue;
+                    var parComp = par.GetComponent(comp.GetType());
+                    if (parComp == null) { r.Add($"componente agregado: {dondeC}"); continue; }
+                    CompararValores(comp, parComp, dondeC, r);
+                }
+            }
+            foreach (var comp in Object.FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                if (comp == null || comp.transform.IsChildOf(viejo)) continue;
+                var so = new SerializedObject(comp);
+                for (var p = so.GetIterator(); p.Next(true);)
+                {
+                    if (p.propertyType != SerializedPropertyType.ObjectReference) continue;
+                    var o = p.objectReferenceValue;
+                    var go = o is Component oc ? oc.gameObject : o as GameObject;
+                    if (go != null && go.transform.IsChildOf(viejo))
+                        r.Add($"referencia desde otro objeto: {comp.name} / {comp.GetType().Name} ({p.displayName})");
+                }
+            }
         }
-        else go.transform.SetPositionAndRotation(enEscena, rotCabina);
+        finally { DestroyImmediate(limpio); }
+        return r;
+    }
+
+    // Valores simples cambiados a mano y eventos conectados
+    static void CompararValores(Component mio, Component limpio, string donde, System.Collections.Generic.List<string> r)
+    {
+        SerializedObject a = new SerializedObject(mio), b = new SerializedObject(limpio);
+        for (var p = a.GetIterator(); p.Next(true);)
+        {
+            if (p.name == "m_Calls" && p.isArray && p.arraySize > 0)
+            {
+                r.Add($"evento conectado: {donde} ({p.propertyPath.Replace(".m_PersistentCalls.m_Calls", "")}, {p.arraySize})");
+                continue;
+            }
+            if (p.propertyPath.StartsWith("m_") && (p.propertyPath == "m_Script" || p.propertyPath == "m_ObjectHideFlags" || p.propertyPath == "m_GameObject" || p.propertyPath == "m_Enabled")) continue;
+            bool simple = p.propertyType == SerializedPropertyType.Float || p.propertyType == SerializedPropertyType.Integer ||
+                          p.propertyType == SerializedPropertyType.Boolean || p.propertyType == SerializedPropertyType.Enum;
+            if (!simple || p.propertyPath.Contains("Array") || p.propertyPath.Contains(".m_")) continue;
+            var q = b.FindProperty(p.propertyPath);
+            if (q != null && q.propertyType == p.propertyType && !SerializedProperty.DataEquals(p, q))
+                r.Add($"valor cambiado: {donde} / {p.displayName}");
+        }
     }
 
     // ---------- Palanca ----------
@@ -416,13 +582,14 @@ public class GeneradorControlesP47 : EditorWindow
 
     // ---------- Botones de mantener presionado ----------
     // Mismos ejes que el switch. Placa, anillo de 16 segmentos que se encienden en ámbar y tapa con ícono:
-    // reaparecer = tapa azul con una casa; reiniciar = tapa roja con una flecha circular.
+    // pista = tapa verde con una pista en perspectiva; hangar = tapa azul con una casa; otra = tapa roja con flecha circular.
     public static GameObject ConstruirBotonMantener(string nombre, BotonMantener.Accion accion, bool guardar)
     {
-        bool casa = accion == BotonMantener.Accion.ReaparecerEnBase;
+        bool casa = accion == BotonMantener.Accion.ReaparecerEnHangar, pista = accion == BotonMantener.Accion.ReaparecerEnBase;
         Material metalOscuro = Mat("P47C_MetalOscuro", new Color(0.12f, 0.12f, 0.13f), 0.6f, 0.4f, guardar),
                  tapa = casa ? Mat("P47C_TapaAzul", new Color(0.10f, 0.28f, 0.62f), 0f, 0.55f, guardar)
-                             : Mat("P47C_Rojo", new Color(0.70f, 0.08f, 0.06f), 0f, 0.5f, guardar),
+                      : pista ? Mat("P47C_TapaVerde", new Color(0.08f, 0.42f, 0.18f), 0f, 0.55f, guardar)
+                      : Mat("P47C_Rojo", new Color(0.70f, 0.08f, 0.06f), 0f, 0.5f, guardar),
                  icono = Mat("P47C_Icono", new Color(0.95f, 0.94f, 0.90f), 0f, 0.4f, guardar),
                  segOn = MatLuz("P47C_LuzAmbarOn", new Color(1f, 0.48f, 0.02f), true, guardar, 1.2f),
                  segOff = MatLuz("P47C_SegmentoOff", new Color(0.16f, 0.13f, 0.08f), false, guardar);
@@ -461,6 +628,17 @@ public class GeneradorControlesP47 : EditorWindow
             var perfil = new[] { new Vector3(-0.008f, yi, -0.0075f), new Vector3(0.008f, yi, -0.0075f), new Vector3(0.008f, yi, 0.0015f),
                                  new Vector3(0f, yi, 0.009f), new Vector3(-0.008f, yi, 0.0015f), new Vector3(-0.008f, yi, -0.0075f) };
             mi.Tapa(perfil, Vector3.up, Vector2.zero);
+        }
+        else if (pista)
+        {
+            // Trapecio blanco que se angosta hacia arriba, con la línea central punteada del color de la tapa
+            var perfil = new[] { new Vector3(-0.0085f, yi, -0.0105f), new Vector3(0.0085f, yi, -0.0105f), new Vector3(0.0035f, yi, 0.0105f),
+                                 new Vector3(-0.0035f, yi, 0.0105f), new Vector3(-0.0085f, yi, -0.0105f) };
+            mi.Tapa(perfil, Vector3.up, Vector2.zero);
+            var mLinea = new Malla();
+            foreach (var (z, ancho, largo) in new[] { (-0.0075f, 0.0016f, 0.0040f), (-0.0015f, 0.0013f, 0.0032f), (0.0040f, 0.0010f, 0.0026f) })
+                mLinea.Caja(new Vector3(0f, yi + 0.0002f, z), new Vector3(ancho, 0.0003f, largo), Quaternion.identity);
+            Poner(Hijo(boton.transform, "IconoLinea", Vector3.zero, Quaternion.identity), mLinea, tapa, guardar);
         }
         else
         {

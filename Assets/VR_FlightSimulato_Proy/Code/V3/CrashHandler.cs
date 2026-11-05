@@ -68,6 +68,9 @@ namespace Charly.FlightController {
         [Header("Reaparición")]
         [Tooltip("Dónde reaparece. Si se deja vacío, donde estaba el avión al empezar la escena")]
         [SerializeField] private Transform spawnPoint;
+        [Tooltip("Dónde queda el avión con el botón de regresar al hangar: su posición y rotación son las de la raíz del avión. " +
+                 "Se lee al apretar el botón. No debe ser hijo del avión. Después de un choque se sigue reapareciendo en la pista")]
+        [SerializeField] private Transform hangarPoint;
         [SerializeField] private float fadeOutTime = 0.25f;
         [Tooltip("Segundos en negro mostrando el mensaje antes de reaparecer")]
         [SerializeField] private float messageTime = 3f;
@@ -283,7 +286,7 @@ namespace Charly.FlightController {
             }
             HideMessage();
 
-            Respawn();
+            Respawn(m_SpawnPosition, m_SpawnRotation);
             yield return Fade(1f, 0f, fadeInTime);
             AudioListener.volume = m_ListenerVolume;
 
@@ -292,13 +295,13 @@ namespace Charly.FlightController {
         }
 
         /// <summary>
-        /// Pone el avión en la pista, quieto, con el switch de motor abajo, la palanca en 0 y el tren abajo (con su palanca
+        /// Pone el avión en ese lugar, quieto, con el switch de motor abajo, la palanca en 0 y el tren abajo (con su palanca
         /// en ABAJO). El XR Origin es hijo del asiento, así que viaja con él.
         /// </summary>
-        private void Respawn() {
-            transform.SetPositionAndRotation(m_SpawnPosition, m_SpawnRotation);
-            m_Rigidbody.position = m_SpawnPosition;
-            m_Rigidbody.rotation = m_SpawnRotation;
+        private void Respawn(Vector3 position, Quaternion rotation) {
+            transform.SetPositionAndRotation(position, rotation);
+            m_Rigidbody.position = position;
+            m_Rigidbody.rotation = rotation;
 
             // Con el avión todavía cinemático: controles a cero (otra vez, por si el piloto movió algo durante el negro)
             // y el tren abajo al instante. Así las ruedas y sus colliders ya están en su lugar antes de que vuelva la
@@ -324,6 +327,19 @@ namespace Charly.FlightController {
         /// y fade de regreso. No cuenta como choque. No hace nada si ya está en un choque o reapareciendo.
         /// </summary>
         public void Reaparecer() {
+            IniciarReaparicion(m_SpawnPosition, m_SpawnRotation, "Regresando a la base");
+        }
+
+        /// <summary>Igual que Reaparecer, pero en el punto del hangar. Sin un punto válido avisa en consola y no hace nada.</summary>
+        public void ReaparecerEnHangar() {
+            if (hangarPoint == null || hangarPoint.IsChildOf(transform)) {
+                Debug.LogWarning("CrashHandler: asigna 'Hangar Point' con un objeto de la escena que no sea hijo del avión.", this);
+                return;
+            }
+            IniciarReaparicion(hangarPoint.position, hangarPoint.rotation, "Regresando al hangar");
+        }
+
+        private void IniciarReaparicion(Vector3 position, Quaternion rotation, string message) {
             if (m_Crashed) return;
             m_Crashed = true;   // mientras dura no se detectan choques
             m_Rigidbody.linearVelocity = Vector3.zero;
@@ -336,16 +352,16 @@ namespace Charly.FlightController {
                 m_BoundaryWasEnabled = mapBoundary.enabled;
                 mapBoundary.enabled = false;
             }
-            StartCoroutine(SecuenciaReaparecer());
+            StartCoroutine(SecuenciaReaparecer(position, rotation, message));
         }
 
-        private IEnumerator SecuenciaReaparecer() {
+        private IEnumerator SecuenciaReaparecer(Vector3 position, Quaternion rotation, string message) {
             m_ListenerVolume = AudioListener.volume;
             yield return Fade(0f, 1f, fadeOutTime);
-            ShowMessage("Regresando a la base");
+            ShowMessage(message);
             yield return new WaitForSeconds(1f);
             HideMessage();
-            Respawn();
+            Respawn(position, rotation);
             yield return Fade(1f, 0f, fadeInTime);
             AudioListener.volume = m_ListenerVolume;
             if (logEvents) Debug.Log("[Crash] Reaparición pedida desde la cabina", this);
